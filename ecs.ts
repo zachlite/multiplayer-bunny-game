@@ -1,6 +1,6 @@
 import * as _ from "lodash";
 import io from "socket.io-client";
-import { Input, State, initState, InputRequest } from "./common/interfaces";
+import { Input, State, InputRequest } from "./common/interfaces";
 import { step } from "./common/state";
 import { FRAME, LATENCY } from "./common/clock";
 
@@ -18,10 +18,11 @@ const socket = io("http://localhost:5555");
 let clientId;
 let frame = 0;
 let savedFrames: { state: State; inputMessages: any[]; frame: number }[] = [];
-let state: State = initState();
+let state: State = [];
 
 socket.on("welcome", data => {
   clientId = data.clientId;
+  console.log(clientId);
 });
 
 socket.on("update", ({ state, acks }) => {
@@ -42,7 +43,7 @@ function receiveUpdate(serverState: State, acks) {
 
   // replay all frames since the ack.
   framesSinceAck.forEach(sf => {
-    state = step(state, sf.inputMessages);
+    state = step(state, sf.inputMessages, clientId);
   });
 
   // throw away ack frame.
@@ -68,7 +69,7 @@ window.onload = () => {
     const currentInput = { ...input };
     const inputMessages = [{ type: "INPUT", data: currentInput }];
     send({ clientId, frame, input: currentInput });
-    state = step(state, inputMessages);
+    state = step(state, inputMessages, clientId);
     savedFrames.push({ state, inputMessages, frame });
     frame += 1;
   }

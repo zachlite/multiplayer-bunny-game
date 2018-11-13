@@ -1,5 +1,5 @@
 import * as _ from "lodash";
-import { Entity, State, Transform, Input } from "./interfaces";
+import { Entity, State, Transform, Input, EntityType } from "./interfaces";
 
 interface Message {
   type: string;
@@ -8,11 +8,11 @@ interface Message {
 
 interface Logic
   extends Array<
-      [
-        (e: Entity) => boolean,
-        (entity: Entity, messages: Message[]) => [Entity, Message[]]
-      ]
-    > {}
+    [
+      (e: Entity) => boolean,
+      (entity: Entity, messages: Message[]) => [Entity, Message[]]
+    ]
+  > {}
 
 function collisionSystem(state: State): Message[] {
   // find entities with transforms that overlap
@@ -131,11 +131,15 @@ function system(
   return [newState, newMessages];
 }
 
-export function step(state: State, inputMessages: Message[]): State {
+export function step(
+  state: State,
+  inputMessages: Message[],
+  clientId: string
+): State {
   const messages = [...inputMessages, ...collisionSystem(state)];
 
   const logic: Logic = [
-    [(e: Entity) => e.controllable !== undefined, playerMovement],
+    [(e: Entity) => e.id === clientId, playerMovement],
     [(e: Entity) => e.health !== undefined, playerHealth],
     [(e: Entity) => e.follow !== undefined, enemyMovement]
   ];

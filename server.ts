@@ -2,21 +2,17 @@ import * as socketio from "socket.io";
 import * as _ from "lodash";
 
 import { FRAME, LATENCY } from "./common/clock";
-import { InputRequest, State, initState } from "./common/interfaces";
+import { InputRequest, State } from "./common/interfaces";
 import { step } from "./common/state";
+import { initPlayer } from "./common/player";
 const FRAME_BUFFER = 4; // wait 4 frames before processing input
 
 const io = socketio(5555);
 
 io.on("connection", socket => {
-  console.log("client connected");
-
-  socket.emit("welcome", { clientId: _.uniqueId("client-") });
+  initClient(socket);
   socket.on("player_input", onReceiveInput);
-
-  socket.on("disconnect", () => {
-    console.log("client disconnected");
-  });
+  socket.on("disconnect", () => onClientDisconnect(socket));
 });
 
 /**
@@ -31,7 +27,31 @@ io.on("connection", socket => {
 
 let clientBuffer: InputRequest[] = [];
 
-let state: State = initState();
+let state: State = [];
+let clientIds: { [socketId: string]: string } = {};
+
+// when a client connects, create a player for them.
+// the client will receive this on the next state update.
+
+function initClient(socket: socketio.Socket) {
+  console.log("client connected", socket.id);
+
+  // create a new clientId
+  const clientId = _.uniqueId("client-");
+
+  // send it to the client
+  socket.emit("welcome", { clientId });
+
+  // create a player with this id
+  state.push(initPlayer(clientId));
+  clientIds[socket.id] = clientId;
+}
+
+function onClientDisconnect(socket: socketio.Socket) {
+  console.log("client disconnected", socket.id);
+  state = state.filter(e => e.id !== clientIds[socket.id]);
+  delete clientIds[socket.id];
+}
 
 function onReceiveInput(input: InputRequest) {
   setTimeout(() => {
@@ -48,7 +68,7 @@ function tick() {
 
   clientBuffer.forEach(request => {
     const inputMessages = [{ type: "INPUT", data: request.input }];
-    state = step(state, inputMessages);
+    state = step(state, inputMessages, request.clientId);
   });
 
   // need ack frames for each client
