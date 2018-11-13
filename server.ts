@@ -1,7 +1,7 @@
 import * as socketio from "socket.io";
 import * as _ from "lodash";
 
-import { FRAME } from "./common/clock";
+import { FRAME, LATENCY } from "./common/clock";
 import { InputRequest, State, initState } from "./common/interfaces";
 import { step } from "./common/state";
 const FRAME_BUFFER = 4; // wait 4 frames before processing input
@@ -34,7 +34,9 @@ let clientBuffer: InputRequest[] = [];
 let state: State = initState();
 
 function onReceiveInput(input: InputRequest) {
-  clientBuffer.push(input);
+  setTimeout(() => {
+    clientBuffer.push(input);
+  }, LATENCY);
 }
 
 function updateClients({ state, acks }) {

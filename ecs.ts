@@ -2,7 +2,7 @@ import * as _ from "lodash";
 import io from "socket.io-client";
 import { Input, State, initState, InputRequest } from "./common/interfaces";
 import { step } from "./common/state";
-import { FRAME } from "./common/clock";
+import { FRAME, LATENCY } from "./common/clock";
 
 /**
  * move player using arrow keys,
@@ -13,12 +13,12 @@ import { FRAME } from "./common/clock";
 // entity component system where entities are bags of components
 // reduce systems that have similarity
 
-const LATENCY = 30; //ms, one-way
-
 const socket = io("http://localhost:5555");
 
 let clientId;
 let frame = 0;
+let savedFrames: { state: State; inputMessages: any[]; frame: number }[] = [];
+let state: State = initState();
 
 socket.on("welcome", data => {
   clientId = data.clientId;
@@ -29,18 +29,27 @@ socket.on("update", ({ state, acks }) => {
 });
 
 function send(input: InputRequest) {
-  setTimeout(() => {
-    socket.emit("player_input", input);
-  }, LATENCY);
+  socket.emit("player_input", input);
 }
 
-function receiveUpdate(state: State, acks) {
-  console.log(state, acks);
+function receiveUpdate(serverState: State, acks) {
+  // accept server state as truth.
+  state = serverState;
+
+  // filter all saved frames sinces the ack
+  const ackFrame: number = acks[clientId];
+  const framesSinceAck = savedFrames.filter(sf => sf.frame > ackFrame);
+
+  // replay all frames since the ack.
+  framesSinceAck.forEach(sf => {
+    state = step(state, sf.inputMessages);
+  });
+
+  // throw away ack frame.
+  savedFrames = savedFrames.filter(sf => sf.frame !== ackFrame);
 }
 
 window.onload = () => {
-  let state: State = initState();
-
   let input: Input = { left: false, right: false };
   document.addEventListener("keydown", e => {
     input.left = e.code === "ArrowLeft" ? true : input.left;
@@ -56,9 +65,11 @@ window.onload = () => {
   const ctx = canvas.getContext("2d");
 
   function gameLoop() {
-    const inputMessages = [{ type: "INPUT", data: input }];
-    send({ clientId, frame, input });
+    const currentInput = { ...input };
+    const inputMessages = [{ type: "INPUT", data: currentInput }];
+    send({ clientId, frame, input: currentInput });
     state = step(state, inputMessages);
+    savedFrames.push({ state, inputMessages, frame });
     frame += 1;
   }
 
