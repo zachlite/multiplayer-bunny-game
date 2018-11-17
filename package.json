@@ -6,7 +6,9 @@
     "server:build:watch": "tsc -w --outDir ./dist-server server.ts",
     "server:start:watch": "nodemon ./dist-server/server.js",
     "server:build": "tsc --outDir ./dist-server server.ts",
-    "server:start": "node ./dist-server/server.js"
+    "server:start": "node ./dist-server/server.js",
+    "docker:build": "docker build . -t gameserver:latest",
+    "docker:run": "docker run -it -p 8000:8000 -p 5555:5555 -e NODE_ENV=production gameserver:latest"
   },
   "dependencies": {
     "express": "^4.16.4",

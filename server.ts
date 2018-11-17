@@ -96,9 +96,18 @@ initClock(tick);
 
 console.log("game server running..");
 
-const app = express();
-app.use(express.static("dist"));
-app.get("/", (req, res) => {
-  res.sendfile(path.join(__dirname, "../dist/index.html"));
+if (process.env.NODE_ENV === "production") {
+  const app = express();
+  app.use(express.static("dist"));
+  app.get("/", (req, res) => {
+    res.sendfile(path.join(__dirname, "../dist/index.html"));
+  });
+  app.listen("8000", () => console.log("http server listens.."));
+}
+
+["SIGINT", "SIGTERM"].forEach((signal: string) => {
+  process.on(signal as any, () => {
+    console.log("quitting", signal);
+    process.exit();
+  });
 });
-app.listen("8000", () => console.log("http server listens.."));

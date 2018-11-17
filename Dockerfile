@@ -13,7 +13,7 @@ EXPOSE 8000
 EXPOSE 5555
 
 RUN yarn client:build
-RUN NODE_ENV=production yarn server:build
+RUN yarn server:build
 
 CMD ["yarn", "server:start"]
 
