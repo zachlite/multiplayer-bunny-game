@@ -1,15 +1,21 @@
 {
   "scripts": {
-    "start": "parcel index.html",
-    "server": "tsc -w --outDir ./dist-server server.ts",
-    "server:start": "nodemon ./dist-server/server.js"
+    "client:build:watch": "parcel watch index.html",
+    "client:build": "parcel build index.html",
+    "client:dev": "parcel index.html",
+    "server:build:watch": "tsc -w --outDir ./dist-server server.ts",
+    "server:start:watch": "nodemon ./dist-server/server.js",
+    "server:build": "tsc --outDir ./dist-server server.ts",
+    "server:start": "node ./dist-server/server.js"
   },
   "dependencies": {
+    "express": "^4.16.4",
     "lodash": "^4.17.11",
     "socket.io": "^2.1.1",
     "socket.io-client": "^2.1.1"
   },
   "devDependencies": {
+    "@types/express": "^4.16.0",
     "@types/lodash": "^4.14.118",
     "@types/socket.io": "^2.1.0",
     "@types/socket.io-client": "^1.4.32",

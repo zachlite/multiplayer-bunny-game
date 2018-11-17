@@ -13,7 +13,7 @@ import { FRAME, LATENCY } from "./common/clock";
 // entity component system where entities are bags of components
 // reduce systems that have similarity
 
-const socket = io("http://localhost:5555");
+const socket = io(`http://${window.location.hostname}:5555`);
 
 let clientId;
 let frame = 0;

@@ -1,5 +1,7 @@
 import * as socketio from "socket.io";
 import * as _ from "lodash";
+import * as express from "express";
+import * as path from "path";
 
 import { FRAME, LATENCY } from "./common/clock";
 import { InputRequest, State } from "./common/interfaces";
@@ -92,4 +94,11 @@ function initClock(tick) {
 
 initClock(tick);
 
-console.log("server listens..");
+console.log("game server running..");
+
+const app = express();
+app.use(express.static("dist"));
+app.get("/", (req, res) => {
+  res.sendfile(path.join(__dirname, "../dist/index.html"));
+});
+app.listen("8000", () => console.log("http server listens.."));

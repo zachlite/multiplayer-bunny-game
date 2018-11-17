@@ -1,2 +1,2 @@
-export const FRAME = 16; // ms
-export const LATENCY = 200; //ms, one-way
+export const FRAME = 8; // ms
+export const LATENCY = process.env.NODE_ENV === "production" ? 0 : 100; //ms, one-way
