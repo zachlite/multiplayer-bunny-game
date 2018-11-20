@@ -1,6 +1,7 @@
 import regl, { Vec3 } from "regl";
 import _ from "lodash";
 import { mat4 } from "gl-matrix";
+import { State } from "../common/interfaces";
 const bunny = require("bunny");
 const normals = require("angle-normals");
 
@@ -9,6 +10,7 @@ interface Camera {
   rotation: Vec3;
 }
 
+//TODO: reconcile this with other Transform type
 interface Transform {
   position: Vec3;
   rotation: Vec3;
@@ -64,11 +66,8 @@ const getModelViewMatrix = (transform: Transform, viewMatrix: mat4) => {
   return mat4.mul(viewCurrent, viewCurrent, modelViewMatrix);
 };
 
-window.onload = () => {
-  const canvas = document.getElementById("canvas");
-  const r = regl(canvas);
-
-  const drawTriangle = r({
+export function getDraw(r: regl.Regl) {
+  const drawShape = r({
     frag: `
     precision mediump float;
     varying vec3 vnormal;
@@ -80,54 +79,29 @@ window.onload = () => {
     attribute vec3 position, normal;
     varying vec3 vnormal;
     uniform mat4 modelViewMatrix, projectionMatrix;
-
+  
     void main() {
       vnormal = normal;
       gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1);
     }`,
 
     attributes: {
-      // position: (ctx, props) => {
-      //   return [
-      //     // front
-      //     [[-1, 1, 1], [1, 1, 1], [1, -1, 1], [-1, -1, 1]],
-
-      //     // back
-      //     [[-1, 1, -1], [1, 1, -1], [1, -1, -1], [-1, -1, -1]],
-
-      //     // top
-      //     [[-1, 1, -1], [1, -1, -1], [1, 1, 1], [-1, 1, 1]],
-
-      //     // bottom
-      //     [[-1, -1, -1], [1, -1, -1], [1, -1, 1], [-1, -1, 1]],
-
-      //     // left
-      //     [[-1, 1, -1], [-1, 1, 1], [-1, -1, 1], [-1, -1, -1]],
-
-      //     // right
-      //     [[1, 1, 1], [1, 1, -1], [1, -1, -1], [1, -1, 1]]
-      //   ];
-      // }
       position: bunny.positions,
       normal: normals(bunny.cells, bunny.positions)
     },
 
     uniforms: {
       modelViewMatrix: ({ tick }, props) => {
-        console.log(props);
-        // const t = 0.01 * tick;
-        // const m = mat4.lookAt({} as any, [0, 0, 0], [0, 0, 0], [0, 1, 0]);
-        // return Object.keys(m).map(key => m[key]);
-        const transform: Transform = {
-          position: [0, -1, 0],
-          rotation: [0, Math.sin(degreeToRadian(tick)) * 100, 0],
-          scale: [1, 1, 0.01]
-        };
+        // const transform: Transform = {
+        //   position: [0, -3, 0],
+        //   rotation: [0, 0, 0],
+        //   scale: [1, 1, 1]
+        // };
         const camera: Camera = {
-          rotation: [0, props.y, 0],
-          position: [0, 0, -20]
+          rotation: [0, 0, 0],
+          position: [0, 0, -100]
         };
-        return getModelViewMatrix(transform, getViewMatrix(camera));
+        return getModelViewMatrix(props.transform, getViewMatrix(camera));
       },
       projectionMatrix: ({ viewportWidth, viewportHeight }) => {
         return mat4.perspective(
@@ -140,41 +114,37 @@ window.onload = () => {
       }
     },
     elements: bunny.cells
-    // elements: [
-    //   // front
-    //   [0, 1, 2, 2, 3, 0],
-    //   // back
-    //   [4, 5, 6, 6, 7, 4],
-    //   // top
-    //   [8, 9, 10, 10, 11, 8],
-    //   // bottom
-    //   [12, 13, 14, 14, 15, 12],
-    //   // left
-    //   [16, 17, 18, 18, 19, 16],
-    //   // right
-    //   [20, 21, 22, 22, 23, 20]
-    // ]
   });
 
-  let cameraAngle = {
-    y: 0
+  const drawShapes = (state: State) => {
+    const transforms = state
+      .filter(entity => entity.transform)
+      .map(entity => {
+        const t: Transform = {
+          position: [entity.transform.x, entity.transform.y, 0],
+          rotation: [0, 0, 0],
+          scale: [1, 1, 1]
+        };
+        return { transform: t };
+      });
+
+    drawShape(transforms);
   };
 
-  document.addEventListener("keydown", e => {
-    cameraAngle.y = e.code === "ArrowLeft" ? cameraAngle.y - 1 : cameraAngle.y;
-    cameraAngle.y = e.code === "ArrowRight" ? cameraAngle.y + 1 : cameraAngle.y;
-  });
+  return drawShapes;
+}
 
-  r.frame(context => {
-    r.clear({
-      color: [0, 0, 0, 1],
-      depth: 1
-    });
-    drawTriangle({ ...cameraAngle });
-  });
+// window.onload = () => {
+//   const canvas = document.getElementById("canvas");
 
-  // (function loop() {
-  //   drawTriangle({ thing: 0 });
-  //   window.requestAnimationFrame(loop);
-  // })();
-};
+//   let cameraAngle = {
+//     y: 0
+//   };
+
+//   document.addEventListener("keydown", e => {
+//     cameraAngle.y = e.code === "ArrowLeft" ? cameraAngle.y - 1 : cameraAngle.y;
+//     cameraAngle.y = e.code === "ArrowRight" ? cameraAngle.y + 1 : cameraAngle.y;
+//   });
+
+//   drawFrames(regl(canvas), {});
+// };

@@ -1,8 +1,11 @@
 import * as _ from "lodash";
 import io from "socket.io-client";
+import regl from "regl";
+
 import { Input, State, InputRequest } from "./common/interfaces";
 import { step } from "./common/state";
 import { FRAME, LATENCY } from "./common/clock";
+import { getDraw } from "./app/draw";
 
 /**
  * move player using arrow keys,
@@ -63,7 +66,6 @@ window.onload = () => {
   });
 
   const canvas = document.getElementById("canvas");
-  const ctx = canvas.getContext("2d");
 
   function gameLoop() {
     const currentInput = { ...input };
@@ -78,35 +80,15 @@ window.onload = () => {
     setInterval(fn, FRAME);
   })(gameLoop);
 
-  (function drawLoop() {
-    draw(ctx, state);
-    requestAnimationFrame(drawLoop);
-  })();
-};
+  const r = regl(canvas);
+  const draw = getDraw(r);
 
-function draw(ctx, state: State) {
-  ctx.clearRect(0, 0, 640, 480);
-
-  // draw everything with a transform
-  state
-    .filter(entity => entity.transform)
-    .forEach(entity => {
-      ctx.fillStyle = entity.color;
-      ctx.fillRect(
-        entity.transform.x,
-        entity.transform.y,
-        entity.transform.width,
-        entity.transform.height
-      );
+  r.frame(context => {
+    r.clear({
+      color: [0, 0, 0, 1],
+      depth: 1
     });
 
-  ctx.fillStyle = "black";
-  ctx.font = "12px sans-serif";
-  ctx.fillText(
-    `player health: ${_.sum(
-      state.filter(e => e.health).map(e => e.health.amount)
-    )}`,
-    50,
-    100
-  );
-}
+    draw(state);
+  });
+};
