@@ -1,5 +1,7 @@
 import * as _ from "lodash";
 import { Entity, State, Transform, Input, EntityType } from "./interfaces";
+import { FRAME } from "./clock";
+import { join } from "path";
 
 interface Message {
   type: string;
@@ -66,9 +68,19 @@ function playerMovement(
   entity: Entity,
   messages: Message[]
 ): [Entity, Message[]] {
-  const input: any = _.first(
+  const input: Input = _.first(
     messages.filter(message => message.type === "INPUT")
   ).data;
+
+  let velocity = { ...entity.physics.velocity };
+
+  if (input.spaceDown) {
+    velocity.y -= 0.065;
+  }
+
+  // TODO: create message on flap
+
+  const dy = velocity.y * FRAME;
 
   const x = input.left
     ? entity.transform.x - 1
@@ -76,20 +88,12 @@ function playerMovement(
     ? entity.transform.x + 1
     : entity.transform.x;
 
-  const transform = { ...entity.transform, x };
+  const transform = { ...entity.transform, x, y: entity.transform.y - dy };
 
-  const newMessages =
-    input.left || input.right
-      ? [
-          {
-            type: "PLAYER_MOVED",
-            data: { position: { x: transform.x, y: transform.y } }
-          }
-        ]
-      : [];
-
-  const newEntity = { ...entity, transform };
-  return [newEntity, newMessages];
+  return [
+    { ...entity, transform, physics: { ...entity.physics, velocity } },
+    []
+  ];
 }
 
 function playerHealth(
@@ -107,6 +111,29 @@ function playerHealth(
   }, entity.health.amount);
 
   return [{ ...entity, health: { amount: health } }, []];
+}
+
+function gravityField(
+  entity: Entity,
+  messages: Message[]
+): [Entity, Message[]] {
+  // all entities with mass should experience a downwards acceleration of 9.8 m/s/s
+
+  const GRAVITY = 0.0001;
+
+  // TODO: check for resting on an object later in the pipeline.  This should just be a acceleration calculation.
+  const vy =
+    entity.transform.y > -10 ? entity.physics.velocity.y + GRAVITY * FRAME : 0;
+
+  const dy = vy * FRAME;
+  const y = entity.transform.y - dy;
+
+  const transform = { ...entity.transform, y };
+  const physics = {
+    ...entity.physics,
+    velocity: { ...entity.physics.velocity, y: vy }
+  };
+  return [{ ...entity, transform, physics }, []];
 }
 
 function system(
@@ -139,7 +166,8 @@ export function step(
   const messages = [...inputMessages, ...collisionSystem(state)];
 
   const logic: Logic = [
-    [(e: Entity) => e.id === clientId, playerMovement],
+    [(e: Entity) => e.physics !== undefined, gravityField],
+    [(e: Entity) => e.id === clientId, playerMovement], // TODO: need a better way to authenticate controls
     [(e: Entity) => e.health !== undefined, playerHealth],
     [(e: Entity) => e.follow !== undefined, enemyMovement]
   ];

@@ -39,7 +39,6 @@ function send(input: InputRequest) {
 function receiveUpdate(serverState: State, acks) {
   // accept server state as truth.
   state = serverState;
-
   // filter all saved frames sinces the ack
   const ackFrame: number = acks[clientId];
   const framesSinceAck = savedFrames.filter(sf => sf.frame > ackFrame);
@@ -54,26 +53,53 @@ function receiveUpdate(serverState: State, acks) {
 }
 
 window.onload = () => {
-  let input: Input = { left: false, right: false };
+  let keysPressed = {};
+
+  // make sure space is only fired once per keydown event:
+  // on initial keydown, set to true
+  // immediately set to false if true
+  // on next keydown, only set to true if not in keysPressed dict.
+
+  let input: Input = { left: false, right: false, spaceDown: false };
+
   document.addEventListener("keydown", e => {
     input.left = e.code === "ArrowLeft" ? true : input.left;
     input.right = e.code === "ArrowRight" ? true : input.right;
+
+    if (e.code === "Space") {
+      if (!keysPressed[e.code]) {
+        input.spaceDown = true;
+        keysPressed[e.code] = true;
+      }
+    }
   });
 
   document.addEventListener("keyup", e => {
     input.left = e.code === "ArrowLeft" ? false : input.left;
     input.right = e.code === "ArrowRight" ? false : input.right;
+    keysPressed[e.code] = undefined;
+
+    if (e.code === "Space") {
+      input.spaceDown = false;
+    }
   });
 
   const canvas = document.getElementById("canvas");
 
   function gameLoop() {
     const currentInput = { ...input };
+
+    if (currentInput.spaceDown) {
+      console.log(frame);
+    }
+
     const inputMessages = [{ type: "INPUT", data: currentInput }];
     send({ clientId, frame, input: currentInput });
     state = step(state, inputMessages, clientId);
     savedFrames.push({ state, inputMessages, frame });
     frame += 1;
+
+    input.spaceDown = input.spaceDown ? false : input.spaceDown;
   }
 
   (function initGameClock(fn) {

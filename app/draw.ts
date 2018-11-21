@@ -92,24 +92,24 @@ export function getDraw(r: regl.Regl) {
 
     uniforms: {
       modelViewMatrix: ({ tick }, props) => {
-        // const transform: Transform = {
-        //   position: [0, -3, 0],
-        //   rotation: [0, 0, 0],
-        //   scale: [1, 1, 1]
-        // };
+        const transform: Transform = {
+          ...props.transform,
+          rotation: [0, tick / 2, 0],
+          scale: [1, 1, 1]
+        };
         const camera: Camera = {
           rotation: [0, 0, 0],
           position: [0, 0, -100]
         };
-        return getModelViewMatrix(props.transform, getViewMatrix(camera));
+        return getModelViewMatrix(transform, getViewMatrix(camera));
       },
       projectionMatrix: ({ viewportWidth, viewportHeight }) => {
         return mat4.perspective(
           mat4.create(),
           (Math.PI * 45) / 180,
-          640 / 480,
+          viewportWidth / viewportHeight,
           0.1,
-          100
+          1000
         );
       }
     },

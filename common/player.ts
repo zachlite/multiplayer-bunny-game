@@ -4,9 +4,9 @@ import { Entity, EntityType } from "./interfaces";
 export function initPlayer(id: string): Entity {
   return {
     id,
-    color: _.sample(["red", "green", "blue", "purple"]),
     type: EntityType.PLAYER,
-    transform: { x: _.sample(_.range(100)), y: 0, width: 20, height: 20 }
+    transform: { x: _.sample(_.range(10)), y: 20, width: 20, height: 20 },
+    physics: { mass: 1, velocity: { x: 0, y: 0 } }
   };
 }
 

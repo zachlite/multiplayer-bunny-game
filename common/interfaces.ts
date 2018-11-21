@@ -1,6 +1,7 @@
 export interface Input {
   left: boolean;
   right: boolean;
+  spaceDown: boolean;
 }
 
 export interface InputRequest {
@@ -33,13 +34,18 @@ export enum EntityType {
   ENEMY
 }
 
+interface Physics {
+  mass: number; // kg
+  velocity: { x: number; y: number };
+}
+
 export interface Entity {
   id: string;
   type: EntityType;
-  color: string;
   transform?: Transform;
   health?: Health;
   controllable?: Controllable;
+  physics?: Physics;
   follow?: Follow;
 }
 
