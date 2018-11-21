@@ -1,7 +1,9 @@
 export interface Input {
+  flap: boolean;
+  forward: boolean;
   left: boolean;
+  back: boolean;
   right: boolean;
-  spaceDown: boolean;
 }
 
 export interface InputRequest {

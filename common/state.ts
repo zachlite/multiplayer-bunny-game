@@ -74,7 +74,7 @@ function playerMovement(
 
   let velocity = { ...entity.physics.velocity };
 
-  if (input.spaceDown) {
+  if (input.flap) {
     velocity.y -= 0.065;
   }
 
