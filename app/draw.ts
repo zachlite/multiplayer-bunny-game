@@ -1,10 +1,17 @@
 import regl from "regl";
 import _ from "lodash";
-import { State, Transform, Camera, Entity } from "../common/interfaces";
+import {
+  State,
+  Transform,
+  Camera,
+  Entity,
+  MeshTypes
+} from "../common/interfaces";
 import { Mesh } from "./mesh";
 import { getProjectionMatrix } from "./projectionMatrix";
 import { getModelViewMatrix } from "./modelViewMatrix";
 const bunny = require("bunny");
+const teapot = require("teapot");
 
 // initialize meshes once
 
@@ -33,7 +40,11 @@ const getCamera = (transform?: Transform): Camera => {
 };
 
 export const initDrawing = (r: regl.Regl) => {
-  const bunnyMesh = Mesh(r, bunny);
+  const meshes = {
+    [MeshTypes.BUNNY]: Mesh(r, bunny),
+    [MeshTypes.TEAPOT]: Mesh(r, teapot)
+  };
+
   const projectionMatrix = getProjectionMatrix(640, 480);
 
   return (state: State, clientId: string) => {
@@ -45,14 +56,11 @@ export const initDrawing = (r: regl.Regl) => {
     // get camera
     const camera = getCamera(player ? player.transform : undefined);
 
-    const drawData = state.map(entity => {
-      return {
+    state.forEach(entity => {
+      meshes[entity.meshType].draw({
         modelViewMatrix: getModelViewMatrix(entity.transform, camera),
         projectionMatrix
-      };
+      });
     });
-
-    // still assuming mesh is a bunny
-    bunnyMesh.draw(drawData);
   };
 };

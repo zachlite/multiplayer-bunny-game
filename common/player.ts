@@ -1,11 +1,11 @@
 import * as _ from "lodash";
-import { Entity, EntityType } from "./interfaces";
+import { Entity, EntityType, MeshTypes } from "./interfaces";
 
-export function initPlayer(id: string): Entity {
+export function initPlayer(id: string, meshType: MeshTypes): Entity {
   return {
     id,
+    meshType,
     type: EntityType.PLAYER,
-    // transform: { x: _.sample(_.range(10)), y: 20, width: 20, height: 20 },
     transform: {
       position: { x: _.sample(_.range(10)), y: 20, z: 0 },
       rotation: { x: 0, y: 0, z: 0 },

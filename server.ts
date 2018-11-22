@@ -4,7 +4,7 @@ import * as express from "express";
 import * as path from "path";
 
 import { FRAME, LATENCY } from "./common/clock";
-import { InputRequest, State } from "./common/interfaces";
+import { InputRequest, State, MeshTypes } from "./common/interfaces";
 import { step } from "./common/state";
 import { initPlayer } from "./common/player";
 const FRAME_BUFFER = 4; // wait 4 frames before processing input
@@ -45,7 +45,9 @@ function initClient(socket: socketio.Socket) {
   socket.emit("welcome", { clientId });
 
   // create a player with this id
-  state.push(initPlayer(clientId));
+  state.push(
+    initPlayer(clientId, _.sample([MeshTypes.TEAPOT, MeshTypes.BUNNY]))
+  );
   clientIds[socket.id] = clientId;
 }
 

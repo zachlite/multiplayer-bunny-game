@@ -4696,6 +4696,10 @@ tar@^4:
     safe-buffer "^5.1.2"
     yallist "^3.0.2"
 
+teapot@^1.0.0:
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/teapot/-/teapot-1.0.0.tgz#e89f7054ea6645acefbd71540e163e9cb44eddb5"
+
 term-size@^1.2.0:
   version "1.2.0"
   resolved "https://registry.yarnpkg.com/term-size/-/term-size-1.2.0.tgz#458b83887f288fc56d6fffbfad262e26638efa69"

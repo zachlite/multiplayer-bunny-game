@@ -48,12 +48,18 @@ interface Physics {
 
 export interface Entity {
   id: string;
+  meshType: MeshTypes;
   type: EntityType;
   transform?: Transform;
   health?: Health;
   controllable?: Controllable;
   physics?: Physics;
   follow?: Follow;
+}
+
+export enum MeshTypes {
+  BUNNY,
+  TEAPOT
 }
 
 export interface Camera {
