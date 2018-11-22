@@ -5,7 +5,7 @@ import regl from "regl";
 import { Input, State, InputRequest } from "./common/interfaces";
 import { step } from "./common/state";
 import { FRAME, LATENCY } from "./common/clock";
-import { getDraw } from "./app/draw";
+import { initDrawing } from "./app/draw";
 
 /**
  * move player using arrow keys,
@@ -117,7 +117,7 @@ window.onload = () => {
   })(gameLoop);
 
   const r = regl(canvas);
-  const draw = getDraw(r);
+  const draw = initDrawing(r);
 
   r.frame(context => {
     r.clear({

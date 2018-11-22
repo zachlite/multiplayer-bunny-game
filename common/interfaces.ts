@@ -56,4 +56,8 @@ export interface Entity {
   follow?: Follow;
 }
 
+export interface Camera {
+  position: Vec3;
+  rotation: Vec3;
+}
 export interface State extends Array<Entity> {}
