@@ -125,6 +125,6 @@ window.onload = () => {
       depth: 1
     });
 
-    draw(state);
+    draw(state, clientId);
   });
 };
