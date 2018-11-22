@@ -121,7 +121,11 @@ export function getDraw(r: regl.Regl) {
       .filter(entity => entity.transform)
       .map(entity => {
         const t: Transform = {
-          position: [entity.transform.x, entity.transform.y, 0],
+          position: [
+            entity.transform.position.x,
+            entity.transform.position.y,
+            entity.transform.position.z
+          ],
           rotation: [0, 0, 0],
           scale: [1, 1, 1]
         };

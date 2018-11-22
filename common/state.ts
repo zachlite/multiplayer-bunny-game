@@ -1,7 +1,13 @@
 import * as _ from "lodash";
-import { Entity, State, Transform, Input, EntityType } from "./interfaces";
+import {
+  Entity,
+  State,
+  Transform,
+  Input,
+  EntityType,
+  Vec3
+} from "./interfaces";
 import { FRAME } from "./clock";
-import { join } from "path";
 
 interface Message {
   type: string;
@@ -16,53 +22,53 @@ interface Logic
     ]
   > {}
 
-function collisionSystem(state: State): Message[] {
-  // find entities with transforms that overlap
-  const overlaps = (r1: Transform, r2: Transform) => {
-    return (
-      r1.x < r2.x + r2.width &&
-      r1.x + r1.width > r2.x &&
-      r1.y < r2.y + r2.height &&
-      r1.y + r1.height > r2.y
-    );
-  };
+// function collisionSystem(state: State): Message[] {
+//   // find entities with transforms that overlap
+//   const overlaps = (r1: Transform, r2: Transform) => {
+//     return (
+//       r1.x < r2.x + r2.width &&
+//       r1.x + r1.width > r2.x &&
+//       r1.y < r2.y + r2.height &&
+//       r1.y + r1.height > r2.y
+//     );
+//   };
 
-  const withTransform = state.filter(entity => entity.transform);
-  const messages = _.flatten(
-    withTransform.map(entity1 => {
-      return withTransform.map(entity2 => {
-        if (entity1.id === entity2.id) return null;
+//   const withTransform = state.filter(entity => entity.transform);
+//   const messages = _.flatten(
+//     withTransform.map(entity1 => {
+//       return withTransform.map(entity2 => {
+//         if (entity1.id === entity2.id) return null;
 
-        return overlaps(entity1.transform, entity2.transform)
-          ? { type: "COLLISION", data: { a: entity1.id, b: entity2.id } }
-          : null;
-      });
-    })
-  ).filter(m => m);
+//         return overlaps(entity1.transform, entity2.transform)
+//           ? { type: "COLLISION", data: { a: entity1.id, b: entity2.id } }
+//           : null;
+//       });
+//     })
+//   ).filter(m => m);
 
-  return messages;
-}
+//   return messages;
+// }
 
-function enemyMovement(
-  entity: Entity,
-  messages: Message[]
-): [Entity, Message[]] {
-  // move towards player.
+// function enemyMovement(
+//   entity: Entity,
+//   messages: Message[]
+// ): [Entity, Message[]] {
+//   // move towards player.
 
-  // if the player moves, update follow.destination
-  const playerMovedMessage = messages.filter(
-    message => message.type === "PLAYER_MOVED"
-  );
+//   // if the player moves, update follow.destination
+//   const playerMovedMessage = messages.filter(
+//     message => message.type === "PLAYER_MOVED"
+//   );
 
-  const destination: { x: number; y: number } = playerMovedMessage.length
-    ? playerMovedMessage[0].data.position
-    : entity.follow.destination;
+//   const destination: { x: number; y: number } = playerMovedMessage.length
+//     ? playerMovedMessage[0].data.position
+//     : entity.follow.destination;
 
-  // update transform according to follow.destination
-  const { x, y } = destination;
-  const transform = { ...entity.transform, x: x + 30, y };
-  return [{ ...entity, transform, follow: { destination: { x, y } } }, []];
-}
+//   // update transform according to follow.destination
+//   const { x, y } = destination;
+//   const transform = { ...entity.transform, x: x + 30, y };
+//   return [{ ...entity, transform, follow: { destination: { x, y } } }, []];
+// }
 
 function playerMovement(
   entity: Entity,
@@ -82,13 +88,15 @@ function playerMovement(
 
   const dy = velocity.y * FRAME;
 
-  const x = input.left
-    ? entity.transform.x - 1
-    : input.right
-    ? entity.transform.x + 1
-    : entity.transform.x;
+  let position = { ...entity.transform.position };
 
-  const transform = { ...entity.transform, x, y: entity.transform.y - dy };
+  position.x = input.left ? position.x - 1 : position.x;
+  position.x = input.right ? position.x + 1 : position.x;
+  position.y = position.y - dy;
+  position.z = input.forward ? position.z - 1 : position.z;
+  position.z = input.back ? position.z + 1 : position.z;
+
+  const transform = { ...entity.transform, position };
 
   return [
     { ...entity, transform, physics: { ...entity.physics, velocity } },
@@ -122,13 +130,16 @@ function gravityField(
   const GRAVITY = 0.0001;
 
   // TODO: check for resting on an object later in the pipeline.  This should just be a acceleration calculation.
+
+  let transform = { ...entity.transform };
   const vy =
-    entity.transform.y > -10 ? entity.physics.velocity.y + GRAVITY * FRAME : 0;
+    transform.position.y > -10
+      ? entity.physics.velocity.y + GRAVITY * FRAME
+      : 0;
 
   const dy = vy * FRAME;
-  const y = entity.transform.y - dy;
+  transform.position.y = entity.transform.position.y - dy;
 
-  const transform = { ...entity.transform, y };
   const physics = {
     ...entity.physics,
     velocity: { ...entity.physics.velocity, y: vy }
@@ -163,13 +174,13 @@ export function step(
   inputMessages: Message[],
   clientId: string
 ): State {
-  const messages = [...inputMessages, ...collisionSystem(state)];
+  const messages = [...inputMessages]; //, ...collisionSystem(state)];
 
   const logic: Logic = [
-    [(e: Entity) => e.physics !== undefined, gravityField],
+    [(e: Entity) => e.physics !== undefined && e.id === clientId, gravityField],
     [(e: Entity) => e.id === clientId, playerMovement], // TODO: need a better way to authenticate controls
-    [(e: Entity) => e.health !== undefined, playerHealth],
-    [(e: Entity) => e.follow !== undefined, enemyMovement]
+    [(e: Entity) => e.health !== undefined, playerHealth]
+    // [(e: Entity) => e.follow !== undefined, enemyMovement]
   ];
 
   const nextState = logic.reduce(

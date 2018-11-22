@@ -12,11 +12,16 @@ export interface InputRequest {
   input: Input;
 }
 
-export interface Transform {
+export interface Vec3 {
   x: number;
   y: number;
-  width: number;
-  height: number;
+  z: number;
+}
+
+export interface Transform {
+  position: Vec3;
+  rotation: Vec3;
+  scale: Vec3;
 }
 
 interface Health {
