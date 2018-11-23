@@ -4,7 +4,13 @@ import * as express from "express";
 import * as path from "path";
 
 import { FRAME, LATENCY } from "./common/clock";
-import { InputRequest, State, MeshTypes } from "./common/interfaces";
+import {
+  InputRequest,
+  State,
+  MeshTypes,
+  Entity,
+  EntityType
+} from "./common/interfaces";
 import { step } from "./common/state";
 import { initPlayer } from "./common/player";
 const FRAME_BUFFER = 4; // wait 4 frames before processing input
@@ -30,6 +36,33 @@ io.on("connection", socket => {
 let clientBuffer: InputRequest[] = [];
 
 let state: State = [];
+
+// let's create a ground and render it
+const ground: Entity = {
+  id: "ground",
+  meshType: MeshTypes.GROUND,
+  type: EntityType.PLAYER,
+  transform: {
+    position: { x: 0, y: -20, z: 0 },
+    rotation: { x: 90, y: 0, z: 0 },
+    scale: { x: 200, y: 200, z: 0 }
+  }
+};
+
+const dummy: Entity = {
+  id: "dummy",
+  meshType: MeshTypes.BUNNY,
+  type: EntityType.PLAYER,
+  transform: {
+    position: { x: 0, y: -10, z: -30 },
+    rotation: { x: 0, y: 0, z: 0 },
+    scale: { x: 1, y: 1, z: 1 }
+  }
+};
+
+state.push(ground);
+state.push(dummy);
+
 let clientIds: { [socketId: string]: string } = {};
 
 // when a client connects, create a player for them.

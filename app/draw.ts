@@ -13,6 +13,9 @@ import { getModelViewMatrix } from "./modelViewMatrix";
 const bunny = require("bunny");
 const teapot = require("teapot");
 
+import { ground } from "./meshes/ground";
+import { degreeToRadian } from "../common/math";
+
 // initialize meshes once
 
 // initialize projection matrix once
@@ -23,15 +26,23 @@ const teapot = require("teapot");
 
 const CAMERA_ANGLE = 20;
 const CAMERA_HEIGHT = 30;
-const CAMERA_DEPTH = 50;
+const CAMERA_DEPTH = 100;
 
 const getCamera = (transform?: Transform): Camera => {
-  const cameraRotation = { x: CAMERA_ANGLE, y: 0, z: 0 };
+  const cameraRotation = {
+    x: CAMERA_ANGLE,
+    y: transform.rotation.y * -1,
+    z: 0
+  };
   const position = transform ? transform.position : { x: 0, y: 0, z: 0 };
   const cameraPosition = {
-    x: position.x * -1,
-    y: position.y * -1 - CAMERA_HEIGHT,
-    z: position.z * -1 - CAMERA_DEPTH
+    x:
+      CAMERA_DEPTH * Math.sin(degreeToRadian(transform.rotation.y)) * -1 -
+      position.x,
+    z:
+      CAMERA_DEPTH * Math.cos(degreeToRadian(transform.rotation.y)) * -1 -
+      position.z,
+    y: position.y * -1 - CAMERA_HEIGHT
   };
   return {
     rotation: cameraRotation,
@@ -42,7 +53,8 @@ const getCamera = (transform?: Transform): Camera => {
 export const initDrawing = (r: regl.Regl) => {
   const meshes = {
     [MeshTypes.BUNNY]: Mesh(r, bunny),
-    [MeshTypes.TEAPOT]: Mesh(r, teapot)
+    [MeshTypes.TEAPOT]: Mesh(r, teapot),
+    [MeshTypes.GROUND]: Mesh(r, ground as any)
   };
 
   const projectionMatrix = getProjectionMatrix(640, 480);

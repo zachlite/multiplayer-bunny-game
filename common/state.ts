@@ -8,6 +8,7 @@ import {
   Vec3
 } from "./interfaces";
 import { FRAME } from "./clock";
+import { degreeToRadian } from "./math";
 
 interface Message {
   type: string;
@@ -86,17 +87,51 @@ function playerMovement(
 
   // TODO: create message on flap
 
-  const dy = velocity.y * FRAME;
+  // Velocity
 
-  let position = { ...entity.transform.position };
+  const v = 0.001;
 
-  position.x = input.left ? position.x - 1 : position.x;
-  position.x = input.right ? position.x + 1 : position.x;
-  position.y = position.y - dy;
-  position.z = input.forward ? position.z - 1 : position.z;
-  position.z = input.back ? position.z + 1 : position.z;
+  velocity.z = input.forward
+    ? v * Math.sin(degreeToRadian(entity.transform.rotation.y - 90)) +
+      velocity.z
+    : velocity.z;
 
-  const transform = { ...entity.transform, position };
+  velocity.z = input.back
+    ? velocity.z -
+      v * Math.sin(degreeToRadian(entity.transform.rotation.y - 90))
+    : velocity.z;
+
+  velocity.x = input.forward
+    ? v * Math.cos(degreeToRadian(entity.transform.rotation.y + 90)) +
+      velocity.x
+    : velocity.x;
+
+  velocity.x = input.back
+    ? velocity.x -
+      v * Math.cos(degreeToRadian(entity.transform.rotation.y + 90))
+    : velocity.x;
+
+  // decay
+  velocity.x = Math.abs(velocity.x) < 0.00001 ? 0 : velocity.x * 0.99;
+  velocity.z = Math.abs(velocity.z) < 0.00001 ? 0 : velocity.z * 0.99;
+
+  // Position
+  // const dy = velocity.y * FRAME;
+  const dx = velocity.x * FRAME;
+  const dz = velocity.z * FRAME;
+
+  const position: Vec3 = {
+    ...entity.transform.position,
+    x: entity.transform.position.x + dx,
+    z: entity.transform.position.z + dz
+  };
+
+  // Rotation
+  let rotation = { ...entity.transform.rotation };
+  rotation.y = input.left ? rotation.y + 1 : rotation.y;
+  rotation.y = input.right ? rotation.y - 1 : rotation.y;
+
+  const transform = { ...entity.transform, position, rotation };
 
   return [
     { ...entity, transform, physics: { ...entity.physics, velocity } },

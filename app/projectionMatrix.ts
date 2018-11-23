@@ -1,4 +1,6 @@
 import { mat4 } from "gl-matrix";
+import { degreeToRadian } from "../common/math";
+const FIELD_OF_VIEW = 45; // degrees
 
 export const getProjectionMatrix = (
   viewportWidth: number,
@@ -6,7 +8,7 @@ export const getProjectionMatrix = (
 ) => {
   return mat4.perspective(
     mat4.create(),
-    (Math.PI * 45) / 180,
+    degreeToRadian(FIELD_OF_VIEW),
     viewportWidth / viewportHeight,
     0.1,
     1000

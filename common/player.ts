@@ -11,7 +11,7 @@ export function initPlayer(id: string, meshType: MeshTypes): Entity {
       rotation: { x: 0, y: 0, z: 0 },
       scale: { x: 1, y: 1, z: 1 }
     },
-    physics: { mass: 1, velocity: { x: 0, y: 0 } }
+    physics: { mass: 1, velocity: { x: 0, y: 0, z: 0 } }
   };
 }
 

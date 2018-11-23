@@ -43,7 +43,7 @@ export enum EntityType {
 
 interface Physics {
   mass: number; // kg
-  velocity: { x: number; y: number };
+  velocity: { x: number; y: number; z: number };
 }
 
 export interface Entity {
@@ -59,7 +59,8 @@ export interface Entity {
 
 export enum MeshTypes {
   BUNNY,
-  TEAPOT
+  TEAPOT,
+  GROUND
 }
 
 export interface Camera {
