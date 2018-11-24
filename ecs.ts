@@ -2,10 +2,11 @@ import * as _ from "lodash";
 import io from "socket.io-client";
 import regl from "regl";
 
-import { Input, State, InputRequest } from "./common/interfaces";
+import { Input, State, InputRequest, MessageType } from "./common/interfaces";
 import { step } from "./common/state";
 import { FRAME, LATENCY } from "./common/clock";
 import { initDrawing } from "./app/draw";
+import { createMessage } from "./common/message";
 
 /**
  * move player using arrow keys,
@@ -101,7 +102,9 @@ window.onload = () => {
 
   function gameLoop() {
     const currentInput = { ...input };
-    const inputMessages = [{ type: "INPUT", data: currentInput }];
+    const inputMessages = [
+      createMessage(MessageType.INPUT, { input: currentInput })
+    ];
     send({ clientId, frame, input: currentInput });
     state = step(state, inputMessages, clientId);
     savedFrames.push({ state, inputMessages, frame });

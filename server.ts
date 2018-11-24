@@ -9,10 +9,12 @@ import {
   State,
   MeshTypes,
   Entity,
-  EntityType
+  EntityType,
+  MessageType
 } from "./common/interfaces";
 import { step } from "./common/state";
 import { initPlayer } from "./common/player";
+import { createMessage } from "./common/message";
 const FRAME_BUFFER = 4; // wait 4 frames before processing input
 
 const io = socketio(5555);
@@ -123,7 +125,9 @@ function tick() {
   // process each client's input from the buffer
 
   clientBuffer.forEach(request => {
-    const inputMessages = [{ type: "INPUT", data: request.input }];
+    const inputMessages = [
+      createMessage(MessageType.INPUT, { input: request.input })
+    ];
     state = step(state, inputMessages, request.clientId);
   });
 

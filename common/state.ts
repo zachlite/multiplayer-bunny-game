@@ -5,15 +5,20 @@ import {
   Transform,
   Input,
   EntityType,
-  Vec3
+  Vec3,
+  Message,
+  MessageType,
+  InputMessage,
+  GravityMessage
 } from "./interfaces";
 import { FRAME } from "./clock";
 import { degreeToRadian } from "./math";
+import { getMessages, createMessage } from "./message";
 
-interface Message {
-  type: string;
-  data: any;
-}
+// interface Message {
+//   type: string;
+//   data: any;
+// }
 
 interface Logic
   extends Array<
@@ -75,17 +80,22 @@ function playerMovement(
   entity: Entity,
   messages: Message[]
 ): [Entity, Message[]] {
-  const input: Input = _.first(
-    messages.filter(message => message.type === "INPUT")
-  ).data;
+  const inputMessage = _.first(
+    getMessages(messages, MessageType.INPUT)
+  ) as InputMessage;
+
+  const input = inputMessage.input;
 
   let velocity = { ...entity.body.velocity };
 
-  if (input.flap) {
-    velocity.y -= 0.065;
-  }
-
   // TODO: create message on flap
+
+  const gravityMessage = _.first(
+    getMessages(messages, MessageType.GRAVITY, entity.id)
+  ) as GravityMessage;
+
+  velocity.y = entity.body.transform.position.y > -10 ? gravityMessage.vy : 0;
+  velocity.y = input.flap ? velocity.y + 0.06 : velocity.y;
 
   // Velocity
 
@@ -116,23 +126,27 @@ function playerMovement(
   velocity.z = Math.abs(velocity.z) < 0.00001 ? 0 : velocity.z * 0.99;
 
   // Position
-  // const dy = velocity.y * FRAME;
+  const dy = velocity.y * FRAME;
   const dx = velocity.x * FRAME;
   const dz = velocity.z * FRAME;
 
+  // keep position above the floor
+  const posY = entity.body.transform.position.y + dy;
+
   const position: Vec3 = {
-    ...entity.body.transform.position,
+    y: posY <= -10 ? -10 : posY,
     x: entity.body.transform.position.x + dx,
     z: entity.body.transform.position.z + dz
   };
 
   // Rotation
-  let rotation = { ...entity.body.transform.rotation };
-  rotation.y = input.left ? rotation.y + 1 : rotation.y;
-  rotation.y = input.right ? rotation.y - 1 : rotation.y;
+  const dRotY = input.left ? 1 : input.right ? -1 : 0;
+  const rotation = {
+    ...entity.body.transform.rotation,
+    y: entity.body.transform.rotation.y + dRotY
+  };
 
   const transform = { ...entity.body.transform, position, rotation };
-
   return [{ ...entity, body: { ...entity.body, transform, velocity } }, []];
 }
 
@@ -161,20 +175,15 @@ function gravityField(
 
   const GRAVITY = 0.0001;
 
-  // TODO: check for resting on an object later in the pipeline.  This should just be a acceleration calculation.
+  // create a new message with calculated vy
+  const vy = entity.body.velocity.y - GRAVITY * FRAME;
 
-  let transform = { ...entity.body.transform };
-  const vy =
-    transform.position.y > -10 ? entity.body.velocity.y + GRAVITY * FRAME : 0;
+  const message = createMessage(MessageType.GRAVITY, {
+    vy,
+    entityId: entity.id
+  });
 
-  const dy = vy * FRAME;
-  transform.position.y = entity.body.transform.position.y - dy;
-
-  const body = {
-    ...entity.body,
-    velocity: { ...entity.body.velocity, y: vy }
-  };
-  return [{ ...entity, body }, []];
+  return [entity, [...messages, message]];
 }
 
 function system(
@@ -210,7 +219,6 @@ export function step(
   const logic: Logic = [
     [(e: Entity) => e.body !== undefined && e.id === clientId, gravityField],
     [(e: Entity) => e.id === clientId, playerMovement]
-
     // [(e: Entity) => e.follow !== undefined, enemyMovement]
   ];
 

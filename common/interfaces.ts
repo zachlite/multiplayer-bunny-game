@@ -54,6 +54,25 @@ export enum MeshTypes {
   CUBE
 }
 
+export enum MessageType {
+  INPUT,
+  GRAVITY
+}
+
+interface BaseMessage {
+  subject: MessageType;
+}
+export interface GravityMessage extends BaseMessage {
+  vy: number;
+  entityId: string;
+}
+
+export interface InputMessage extends BaseMessage {
+  input: Input;
+}
+
+export type Message = GravityMessage | InputMessage;
+
 export interface Camera {
   position: Vec3;
   rotation: Vec3;
