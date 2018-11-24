@@ -60,7 +60,8 @@ export interface Entity {
 export enum MeshTypes {
   BUNNY,
   TEAPOT,
-  GROUND
+  GROUND,
+  CUBE
 }
 
 export interface Camera {

@@ -43,7 +43,7 @@ const ground: Entity = {
   meshType: MeshTypes.GROUND,
   type: EntityType.PLAYER,
   transform: {
-    position: { x: 0, y: -20, z: 0 },
+    position: { x: 0, y: -10, z: 0 },
     rotation: { x: 90, y: 0, z: 0 },
     scale: { x: 200, y: 200, z: 0 }
   }
@@ -51,15 +51,27 @@ const ground: Entity = {
 
 const dummy: Entity = {
   id: "dummy",
-  meshType: MeshTypes.BUNNY,
+  meshType: MeshTypes.TEAPOT,
   type: EntityType.PLAYER,
   transform: {
-    position: { x: 0, y: -10, z: -30 },
+    position: { x: 0, y: 0, z: -30 },
     rotation: { x: 0, y: 0, z: 0 },
     scale: { x: 1, y: 1, z: 1 }
   }
 };
 
+const cube: Entity = {
+  id: "cube",
+  meshType: MeshTypes.CUBE,
+  type: EntityType.PLAYER,
+  transform: {
+    position: { x: 50, y: 0, z: -30 },
+    rotation: { x: 0, y: 0, z: 0 },
+    scale: { x: 10, y: 10, z: 10 }
+  }
+};
+
+state.push(cube);
 state.push(ground);
 state.push(dummy);
 
@@ -78,9 +90,7 @@ function initClient(socket: socketio.Socket) {
   socket.emit("welcome", { clientId });
 
   // create a player with this id
-  state.push(
-    initPlayer(clientId, _.sample([MeshTypes.TEAPOT, MeshTypes.BUNNY]))
-  );
+  state.push(initPlayer(clientId, MeshTypes.BUNNY));
   clientIds[socket.id] = clientId;
 }
 

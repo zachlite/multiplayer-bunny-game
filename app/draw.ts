@@ -7,14 +7,19 @@ import {
   Entity,
   MeshTypes
 } from "../common/interfaces";
+import { degreeToRadian } from "../common/math";
+
 import { Mesh } from "./mesh";
 import { getProjectionMatrix } from "./projectionMatrix";
 import { getModelViewMatrix } from "./modelViewMatrix";
+
 const bunny = require("bunny");
 const teapot = require("teapot");
-
 import { ground } from "./meshes/ground";
-import { degreeToRadian } from "../common/math";
+import { cube } from "./meshes/cube";
+
+import { defaultShader } from "./shaders/default";
+import { cube as cubeShader } from "./shaders/cube";
 
 // initialize meshes once
 
@@ -52,9 +57,16 @@ const getCamera = (transform?: Transform): Camera => {
 
 export const initDrawing = (r: regl.Regl) => {
   const meshes = {
-    [MeshTypes.BUNNY]: Mesh(r, bunny),
-    [MeshTypes.TEAPOT]: Mesh(r, teapot),
-    [MeshTypes.GROUND]: Mesh(r, ground as any)
+    [MeshTypes.BUNNY]: Mesh(r, bunny, defaultShader),
+    [MeshTypes.TEAPOT]: Mesh(r, teapot, defaultShader),
+    [MeshTypes.GROUND]: Mesh(r, ground as any, defaultShader),
+    [MeshTypes.CUBE]: Mesh(r, cube as any, cubeShader, {
+      texture: r.texture([
+        [[255, 0, 255], [0, 0, 0, 0]],
+        [[0, 0, 0, 0], [255, 0, 255]]
+      ]),
+      coordinates: cube.textureCoordinates
+    })
   };
 
   const projectionMatrix = getProjectionMatrix(640, 480);
