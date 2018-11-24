@@ -80,50 +80,49 @@ function playerMovement(
   entity: Entity,
   messages: Message[]
 ): [Entity, Message[]] {
+  // TODO: create message on flap
+
   const inputMessage = _.first(
     getMessages(messages, MessageType.INPUT)
   ) as InputMessage;
-
-  const input = inputMessage.input;
-
-  let velocity = { ...entity.body.velocity };
-
-  // TODO: create message on flap
 
   const gravityMessage = _.first(
     getMessages(messages, MessageType.GRAVITY, entity.id)
   ) as GravityMessage;
 
-  velocity.y = entity.body.transform.position.y > -10 ? gravityMessage.vy : 0;
-  velocity.y = input.flap ? velocity.y + 0.06 : velocity.y;
+  const input = inputMessage.input;
 
   // Velocity
-
   const v = 0.001;
+  const direction = input.forward ? 1 : -1;
+  const thrust = input.forward || input.back ? 1 : 0;
 
-  velocity.z = input.forward
-    ? v * Math.sin(degreeToRadian(entity.body.transform.rotation.y - 90)) +
-      velocity.z
-    : velocity.z;
+  const vz =
+    entity.body.velocity.z +
+    thrust *
+      direction *
+      v *
+      Math.sin(degreeToRadian(entity.body.transform.rotation.y - 90));
 
-  velocity.z = input.back
-    ? velocity.z -
-      v * Math.sin(degreeToRadian(entity.body.transform.rotation.y - 90))
-    : velocity.z;
+  const vx =
+    entity.body.velocity.x +
+    thrust *
+      direction *
+      v *
+      Math.cos(degreeToRadian(entity.body.transform.rotation.y + 90));
 
-  velocity.x = input.forward
-    ? v * Math.cos(degreeToRadian(entity.body.transform.rotation.y + 90)) +
-      velocity.x
-    : velocity.x;
-
-  velocity.x = input.back
-    ? velocity.x -
-      v * Math.cos(degreeToRadian(entity.body.transform.rotation.y + 90))
-    : velocity.x;
+  const vyGravity =
+    entity.body.transform.position.y > -10 ? gravityMessage.vy : 0;
+  const vyFlap = input.flap ? vyGravity + 0.06 : vyGravity;
 
   // decay
-  velocity.x = Math.abs(velocity.x) < 0.00001 ? 0 : velocity.x * 0.99;
-  velocity.z = Math.abs(velocity.z) < 0.00001 ? 0 : velocity.z * 0.99;
+  const decay = (v: number) => (Math.abs(v) < 0.00001 ? 0 : v * 0.99);
+
+  const velocity = {
+    x: decay(vx),
+    y: vyFlap,
+    z: decay(vz)
+  };
 
   // Position
   const dy = velocity.y * FRAME;
