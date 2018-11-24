@@ -79,7 +79,7 @@ function playerMovement(
     messages.filter(message => message.type === "INPUT")
   ).data;
 
-  let velocity = { ...entity.physics.velocity };
+  let velocity = { ...entity.body.velocity };
 
   if (input.flap) {
     velocity.y -= 0.065;
@@ -92,23 +92,23 @@ function playerMovement(
   const v = 0.001;
 
   velocity.z = input.forward
-    ? v * Math.sin(degreeToRadian(entity.transform.rotation.y - 90)) +
+    ? v * Math.sin(degreeToRadian(entity.body.transform.rotation.y - 90)) +
       velocity.z
     : velocity.z;
 
   velocity.z = input.back
     ? velocity.z -
-      v * Math.sin(degreeToRadian(entity.transform.rotation.y - 90))
+      v * Math.sin(degreeToRadian(entity.body.transform.rotation.y - 90))
     : velocity.z;
 
   velocity.x = input.forward
-    ? v * Math.cos(degreeToRadian(entity.transform.rotation.y + 90)) +
+    ? v * Math.cos(degreeToRadian(entity.body.transform.rotation.y + 90)) +
       velocity.x
     : velocity.x;
 
   velocity.x = input.back
     ? velocity.x -
-      v * Math.cos(degreeToRadian(entity.transform.rotation.y + 90))
+      v * Math.cos(degreeToRadian(entity.body.transform.rotation.y + 90))
     : velocity.x;
 
   // decay
@@ -121,40 +121,37 @@ function playerMovement(
   const dz = velocity.z * FRAME;
 
   const position: Vec3 = {
-    ...entity.transform.position,
-    x: entity.transform.position.x + dx,
-    z: entity.transform.position.z + dz
+    ...entity.body.transform.position,
+    x: entity.body.transform.position.x + dx,
+    z: entity.body.transform.position.z + dz
   };
 
   // Rotation
-  let rotation = { ...entity.transform.rotation };
+  let rotation = { ...entity.body.transform.rotation };
   rotation.y = input.left ? rotation.y + 1 : rotation.y;
   rotation.y = input.right ? rotation.y - 1 : rotation.y;
 
-  const transform = { ...entity.transform, position, rotation };
+  const transform = { ...entity.body.transform, position, rotation };
 
-  return [
-    { ...entity, transform, physics: { ...entity.physics, velocity } },
-    []
-  ];
+  return [{ ...entity, body: { ...entity.body, transform, velocity } }, []];
 }
 
-function playerHealth(
-  entity: Entity,
-  messages: Message[]
-): [Entity, Message[]] {
-  const collisions = messages.filter(
-    message =>
-      message.type === "COLLISION" &&
-      (message.data.a === entity.id || message.data.b === entity.id)
-  );
+// function playerHealth(
+//   entity: Entity,
+//   messages: Message[]
+// ): [Entity, Message[]] {
+//   const collisions = messages.filter(
+//     message =>
+//       message.type === "COLLISION" &&
+//       (message.data.a === entity.id || message.data.b === entity.id)
+//   );
 
-  const health = collisions.reduce((acc, curr) => {
-    return acc - 1;
-  }, entity.health.amount);
+//   const health = collisions.reduce((acc, curr) => {
+//     return acc - 1;
+//   }, entity.health.amount);
 
-  return [{ ...entity, health: { amount: health } }, []];
-}
+//   return [{ ...entity, health: { amount: health } }, []];
+// }
 
 function gravityField(
   entity: Entity,
@@ -166,20 +163,18 @@ function gravityField(
 
   // TODO: check for resting on an object later in the pipeline.  This should just be a acceleration calculation.
 
-  let transform = { ...entity.transform };
+  let transform = { ...entity.body.transform };
   const vy =
-    transform.position.y > -10
-      ? entity.physics.velocity.y + GRAVITY * FRAME
-      : 0;
+    transform.position.y > -10 ? entity.body.velocity.y + GRAVITY * FRAME : 0;
 
   const dy = vy * FRAME;
-  transform.position.y = entity.transform.position.y - dy;
+  transform.position.y = entity.body.transform.position.y - dy;
 
-  const physics = {
-    ...entity.physics,
-    velocity: { ...entity.physics.velocity, y: vy }
+  const body = {
+    ...entity.body,
+    velocity: { ...entity.body.velocity, y: vy }
   };
-  return [{ ...entity, transform, physics }, []];
+  return [{ ...entity, body }, []];
 }
 
 function system(
@@ -211,10 +206,11 @@ export function step(
 ): State {
   const messages = [...inputMessages]; //, ...collisionSystem(state)];
 
+  // TODO: need a better way to authenticate controls
   const logic: Logic = [
-    [(e: Entity) => e.physics !== undefined && e.id === clientId, gravityField],
-    [(e: Entity) => e.id === clientId, playerMovement], // TODO: need a better way to authenticate controls
-    [(e: Entity) => e.health !== undefined, playerHealth]
+    [(e: Entity) => e.body !== undefined && e.id === clientId, gravityField],
+    [(e: Entity) => e.id === clientId, playerMovement]
+
     // [(e: Entity) => e.follow !== undefined, enemyMovement]
   ];
 

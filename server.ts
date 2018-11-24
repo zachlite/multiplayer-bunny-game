@@ -40,34 +40,43 @@ let state: State = [];
 // let's create a ground and render it
 const ground: Entity = {
   id: "ground",
-  meshType: MeshTypes.GROUND,
-  type: EntityType.PLAYER,
-  transform: {
-    position: { x: 0, y: -10, z: 0 },
-    rotation: { x: 90, y: 0, z: 0 },
-    scale: { x: 200, y: 200, z: 0 }
+  type: EntityType.GROUND,
+  mesh: { meshType: MeshTypes.GROUND },
+  body: {
+    velocity: { x: 0, y: 0, z: 0 },
+    transform: {
+      position: { x: 0, y: -10, z: 0 },
+      rotation: { x: 90, y: 0, z: 0 },
+      scale: { x: 200, y: 200, z: 0 }
+    }
   }
 };
 
 const dummy: Entity = {
   id: "dummy",
-  meshType: MeshTypes.TEAPOT,
   type: EntityType.PLAYER,
-  transform: {
-    position: { x: 0, y: 0, z: -30 },
-    rotation: { x: 0, y: 0, z: 0 },
-    scale: { x: 1, y: 1, z: 1 }
+  mesh: { meshType: MeshTypes.TEAPOT },
+  body: {
+    velocity: { x: 0, y: 0, z: 0 },
+    transform: {
+      position: { x: 0, y: 0, z: -30 },
+      rotation: { x: 0, y: 0, z: 0 },
+      scale: { x: 1, y: 1, z: 1 }
+    }
   }
 };
 
 const cube: Entity = {
   id: "cube",
-  meshType: MeshTypes.CUBE,
-  type: EntityType.PLAYER,
-  transform: {
-    position: { x: 50, y: 0, z: -30 },
-    rotation: { x: 0, y: 0, z: 0 },
-    scale: { x: 10, y: 10, z: 10 }
+  type: EntityType.CUBE,
+  mesh: { meshType: MeshTypes.CUBE },
+  body: {
+    velocity: { x: 0, y: 0, z: 0 },
+    transform: {
+      position: { x: 50, y: 0, z: -30 },
+      rotation: { x: 0, y: 0, z: 0 },
+      scale: { x: 10, y: 10, z: 10 }
+    }
   }
 };
 

@@ -24,37 +24,27 @@ export interface Transform {
   scale: Vec3;
 }
 
-interface Health {
-  amount: number;
-}
-
-interface Controllable {
-  active: true;
-}
-
-interface Follow {
-  destination: { x: number; y: number };
-}
-
 export enum EntityType {
   PLAYER,
-  ENEMY
+  GROUND,
+  CUBE
 }
 
-interface Physics {
-  mass: number; // kg
-  velocity: { x: number; y: number; z: number };
+interface Mesh {
+  meshType: MeshTypes;
+}
+
+interface PhysicalBody {
+  // mass: number; // kg
+  velocity: Vec3;
+  transform: Transform;
 }
 
 export interface Entity {
   id: string;
-  meshType: MeshTypes;
   type: EntityType;
-  transform?: Transform;
-  health?: Health;
-  controllable?: Controllable;
-  physics?: Physics;
-  follow?: Follow;
+  mesh?: Mesh;
+  body?: PhysicalBody;
 }
 
 export enum MeshTypes {

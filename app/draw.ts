@@ -58,7 +58,17 @@ const getCamera = (transform?: Transform): Camera => {
 export const initDrawing = (r: regl.Regl) => {
   const meshes = {
     [MeshTypes.BUNNY]: Mesh(r, bunny, defaultShader),
-    [MeshTypes.TEAPOT]: Mesh(r, teapot, defaultShader),
+    [MeshTypes.TEAPOT]: Mesh(r, teapot, cubeShader, {
+      texture: r.texture([
+        [[255, 0, 255], [0, 255, 0, 0]],
+        [[0, 255, 0, 0], [255, 0, 255]]
+      ]),
+      coordinates: _.flatten(
+        _.range(792).map(i => {
+          return [[0, 0], [1, 0], [1, 1], [0, 1]];
+        })
+      )
+    }),
     [MeshTypes.GROUND]: Mesh(r, ground as any, defaultShader),
     [MeshTypes.CUBE]: Mesh(r, cube as any, cubeShader, {
       texture: r.texture([
@@ -78,11 +88,11 @@ export const initDrawing = (r: regl.Regl) => {
     );
 
     // get camera
-    const camera = getCamera(player ? player.transform : undefined);
+    const camera = getCamera(player ? player.body.transform : undefined);
 
     state.forEach(entity => {
-      meshes[entity.meshType].draw({
-        modelViewMatrix: getModelViewMatrix(entity.transform, camera),
+      meshes[entity.mesh.meshType].draw({
+        modelViewMatrix: getModelViewMatrix(entity.body.transform, camera),
         projectionMatrix
       });
     });
