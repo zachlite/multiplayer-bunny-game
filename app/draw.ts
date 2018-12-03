@@ -16,6 +16,8 @@ import { getModelViewMatrix } from "./modelViewMatrix";
 
 const bunny = require("bunny");
 const teapot = require("teapot");
+
+import { normalizeVertices, centerYAxis } from "./meshes/utils";
 import { ground } from "./meshes/ground";
 import { cube } from "./meshes/cube";
 
@@ -61,11 +63,17 @@ const getCamera = (transform?: Transform): Camera => {
 export const initDrawing = (r: regl.Regl) => {
   const meshes = {
     [MeshTypes.BUNNY]: Mesh(r, {
-      spatialData: bunny,
+      spatialData: {
+        positions: centerYAxis(normalizeVertices(bunny.positions)),
+        cells: bunny.cells
+      },
       shaders: defaultShader
     }),
     [MeshTypes.TEAPOT]: Mesh(r, {
-      spatialData: teapot,
+      spatialData: {
+        positions: normalizeVertices(teapot.positions),
+        cells: teapot.cells
+      },
       shaders: defaultShader
     }),
     [MeshTypes.GROUND]: Mesh(r, {

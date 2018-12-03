@@ -9,14 +9,14 @@ export function initPlayer(id: string, meshType: MeshTypes): Entity {
     body: {
       velocity: { x: 0, y: 0, z: 0 },
       transform: {
-        position: { x: _.sample(_.range(10)), y: 20, z: 0 },
+        position: { x: 0, y: 0, z: 0 },
         rotation: { x: 0, y: 0, z: 0 },
-        scale: { x: 1, y: 1, z: 1 }
+        scale: { x: 10, y: 10, z: 10 }
       }
     },
     boundingBox: {
-      dimensions: { x: 5, y: 5, z: 5 },
-      yOffset: 5
+      dimensions: { x: 10, y: 10, z: 10 },
+      yOffset: 0
     }
   };
 }

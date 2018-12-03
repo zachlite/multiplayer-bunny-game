@@ -47,7 +47,7 @@ const ground: Entity = {
   body: {
     velocity: { x: 0, y: 0, z: 0 },
     transform: {
-      position: { x: 0, y: -10, z: 0 },
+      position: { x: 0, y: 0, z: 0 },
       rotation: { x: 90, y: 0, z: 0 },
       scale: { x: 200, y: 200, z: 0 }
     }
@@ -63,11 +63,11 @@ const dummy: Entity = {
     transform: {
       position: { x: 0, y: 0, z: -30 },
       rotation: { x: 0, y: 0, z: 0 },
-      scale: { x: 1, y: 1, z: 1 }
+      scale: { x: 10, y: 10, z: 10 }
     }
   },
   boundingBox: {
-    dimensions: { x: 15, y: 7, z: 7 },
+    dimensions: { x: 10, y: 10, z: 10 },
     yOffset: 0
   }
 };
@@ -87,7 +87,7 @@ const cube: Entity = {
 };
 
 state.push(cube);
-state.push(ground);
+// state.push(ground);
 state.push(dummy);
 
 let clientIds: { [socketId: string]: string } = {};
