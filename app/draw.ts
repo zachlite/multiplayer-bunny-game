@@ -5,11 +5,12 @@ import {
   Transform,
   Camera,
   Entity,
-  MeshTypes
+  MeshTypes,
+  EntityType
 } from "../common/interfaces";
 import { degreeToRadian } from "../common/math";
 
-import { Mesh } from "./mesh";
+import { Mesh, MeshData } from "./mesh";
 import { getProjectionMatrix } from "./projectionMatrix";
 import { getModelViewMatrix } from "./modelViewMatrix";
 
@@ -20,6 +21,8 @@ import { cube } from "./meshes/cube";
 
 import { defaultShader } from "./shaders/default";
 import { cube as cubeShader } from "./shaders/cube";
+import { boundingBox as boundingBoxShader } from "./shaders/boundingBox";
+import { boundingBox } from "./meshes/boundingBox";
 
 // initialize meshes once
 
@@ -57,25 +60,34 @@ const getCamera = (transform?: Transform): Camera => {
 
 export const initDrawing = (r: regl.Regl) => {
   const meshes = {
-    [MeshTypes.BUNNY]: Mesh(r, bunny, defaultShader),
-    [MeshTypes.TEAPOT]: Mesh(r, teapot, cubeShader, {
-      texture: r.texture([
-        [[255, 0, 255], [0, 255, 0, 0]],
-        [[0, 255, 0, 0], [255, 0, 255]]
-      ]),
-      coordinates: _.flatten(
-        _.range(792).map(i => {
-          return [[0, 0], [1, 0], [1, 1], [0, 1]];
-        })
-      )
+    [MeshTypes.BUNNY]: Mesh(r, {
+      spatialData: bunny,
+      shaders: defaultShader
     }),
-    [MeshTypes.GROUND]: Mesh(r, ground as any, defaultShader),
-    [MeshTypes.CUBE]: Mesh(r, cube as any, cubeShader, {
-      texture: r.texture([
-        [[255, 0, 255], [0, 0, 0, 0]],
-        [[0, 0, 0, 0], [255, 0, 255]]
-      ]),
-      coordinates: cube.textureCoordinates
+    [MeshTypes.TEAPOT]: Mesh(r, {
+      spatialData: teapot,
+      shaders: defaultShader
+    }),
+    [MeshTypes.GROUND]: Mesh(r, {
+      spatialData: ground,
+      shaders: defaultShader
+    }),
+    [MeshTypes.CUBE]: Mesh(r, {
+      spatialData: cube,
+      shaders: cubeShader,
+      textureData: {
+        texture: r.texture([
+          [[255, 0, 255], [0, 0, 0, 0]],
+          [[0, 0, 0, 0], [255, 0, 255]]
+        ]),
+        coordinates: cube.textureCoordinates
+      }
+    }),
+
+    [MeshTypes.BOUNDING_BOX]: Mesh(r, {
+      spatialData: boundingBox,
+      shaders: boundingBoxShader,
+      primitive: "lines"
     })
   };
 
@@ -91,10 +103,29 @@ export const initDrawing = (r: regl.Regl) => {
     const camera = getCamera(player ? player.body.transform : undefined);
 
     state.forEach(entity => {
+      const modelViewMatrix = getModelViewMatrix(entity.body.transform, camera);
+
       meshes[entity.mesh.meshType].draw({
-        modelViewMatrix: getModelViewMatrix(entity.body.transform, camera),
+        modelViewMatrix,
         projectionMatrix
       });
+
+      if (entity.boundingBox !== undefined) {
+        const boundingBoxTransform: Transform = {
+          ...entity.body.transform,
+          scale: entity.boundingBox.dimensions,
+          rotation: { x: 0, y: 0, z: 0 },
+          position: {
+            ...entity.body.transform.position,
+            y: entity.body.transform.position.y + entity.boundingBox.yOffset
+          }
+        };
+
+        meshes[MeshTypes.BOUNDING_BOX].draw({
+          modelViewMatrix: getModelViewMatrix(boundingBoxTransform, camera),
+          projectionMatrix
+        });
+      }
     });
   };
 };

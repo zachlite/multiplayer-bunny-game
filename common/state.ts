@@ -55,6 +55,26 @@ interface Logic
 //   return messages;
 // }
 
+function collisionSystem(entities: Entity[], messages: Message[]) {
+  // assume entities have a body
+  // for now, the bounding box is the body's transform
+  // the bounding box is rotation agnostic for simplicity
+  /**
+   *
+   *
+   *
+   *
+   *
+   *
+   *
+   *
+   */
+  // TODO:
+  // draw bounding box
+  // find collisions between bounding boxes
+  // create messages for collisions found.
+}
+
 // function enemyMovement(
 //   entity: Entity,
 //   messages: Message[]

@@ -40,18 +40,25 @@ interface PhysicalBody {
   transform: Transform;
 }
 
+interface BoundingBox {
+  dimensions: Vec3;
+  yOffset: number;
+}
+
 export interface Entity {
   id: string;
   type: EntityType;
   mesh?: Mesh;
   body?: PhysicalBody;
+  boundingBox?: BoundingBox;
 }
 
 export enum MeshTypes {
   BUNNY,
   TEAPOT,
   GROUND,
-  CUBE
+  CUBE,
+  BOUNDING_BOX
 }
 
 export enum MessageType {

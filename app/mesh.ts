@@ -1,39 +1,51 @@
 import regl from "regl";
 const normals = require("angle-normals");
 
-export const Mesh = (
-  r: regl.Regl,
-  { positions, cells }: { positions: regl.Buffer; cells: regl.Buffer },
-  { vert, frag }: { vert: string; frag: string },
-  image?: { texture: regl.Texture2D; coordinates: number[][] }
-) => {
+export interface MeshData {
+  spatialData: { positions: number[][]; cells: number[][] };
+  shaders: { vert: string; frag: string };
+  textureData?: { texture: regl.Texture2D; coordinates: number[][] };
+  glAttributes?: { position: any; normal: any; textureCoord };
+  primitive?: string;
+}
+
+export const Mesh = (r: regl.Regl, meshData: MeshData) => {
   const defaultUniforms = {
     modelViewMatrix: (context, props) => props.modelViewMatrix,
     projectionMatrix: (context, props) => props.projectionMatrix
   };
 
+  const { spatialData, shaders, textureData } = meshData;
+
   const imageUniforms = {
     ...defaultUniforms,
-    texture: image ? image.texture : undefined
+    texture: textureData ? textureData.texture : undefined
   };
 
-  const defaultAttributes = {
-    position: positions,
-    normal: normals(cells, positions)
+  let defaultAttributes = {
+    position: spatialData.positions
   };
+
+  if (meshData.primitive !== "lines") {
+    defaultAttributes["normal"] = normals(
+      spatialData.cells,
+      spatialData.positions
+    );
+  }
 
   const imageAttributes = {
     ...defaultAttributes,
-    textureCoord: image ? image.coordinates : undefined
+    textureCoord: textureData ? textureData.coordinates : undefined
   };
 
   return {
     draw: r({
-      vert,
-      frag,
-      attributes: image ? imageAttributes : defaultAttributes,
-      uniforms: image ? imageUniforms : defaultUniforms,
-      elements: cells
+      vert: shaders.vert,
+      frag: shaders.frag,
+      primitive: meshData.primitive || "triangles",
+      attributes: textureData ? imageAttributes : defaultAttributes,
+      uniforms: textureData ? imageUniforms : defaultUniforms,
+      elements: spatialData.cells
     })
   };
 };
