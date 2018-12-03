@@ -61,14 +61,15 @@ const dummy: Entity = {
   body: {
     velocity: { x: 0, y: 0, z: 0 },
     transform: {
-      position: { x: 0, y: 0, z: -30 },
+      position: { x: 0, y: 5, z: -30 },
       rotation: { x: 0, y: 0, z: 0 },
       scale: { x: 10, y: 10, z: 10 }
     }
   },
   boundingBox: {
-    dimensions: { x: 10, y: 10, z: 10 },
-    yOffset: 0
+    offset: { x: 10, y: 5, z: 5 },
+    yOffset: 0,
+    activeCollision: false
   }
 };
 
@@ -79,15 +80,15 @@ const cube: Entity = {
   body: {
     velocity: { x: 0, y: 0, z: 0 },
     transform: {
-      position: { x: 50, y: 0, z: -30 },
+      position: { x: 50, y: 5, z: -30 },
       rotation: { x: 0, y: 0, z: 0 },
-      scale: { x: 10, y: 10, z: 10 }
+      scale: { x: 5, y: 5, z: 5 }
     }
   }
 };
 
 state.push(cube);
-// state.push(ground);
+state.push(ground);
 state.push(dummy);
 
 let clientIds: { [socketId: string]: string } = {};

@@ -1,3 +1,4 @@
+const combinatorics = require("js-combinatorics");
 import * as _ from "lodash";
 import {
   Entity,
@@ -9,7 +10,9 @@ import {
   Message,
   MessageType,
   InputMessage,
-  GravityMessage
+  GravityMessage,
+  BoundingBox,
+  CollisionMessage
 } from "./interfaces";
 import { FRAME } from "./clock";
 import { degreeToRadian } from "./math";
@@ -55,24 +58,63 @@ interface Logic
 //   return messages;
 // }
 
-function collisionSystem(entities: Entity[], messages: Message[]) {
-  // assume entities have a body
-  // for now, the bounding box is the body's transform
-  // the bounding box is rotation agnostic for simplicity
-  /**
-   *
-   *
-   *
-   *
-   *
-   *
-   *
-   *
-   */
-  // TODO:
-  // draw bounding box
-  // find collisions between bounding boxes
-  // create messages for collisions found.
+function intersect(
+  a: { position: Vec3; boundingBox: BoundingBox },
+  b: { position: Vec3; boundingBox: BoundingBox }
+) {
+  const minMax = (
+    bb: { position: Vec3; boundingBox: BoundingBox },
+    axis: "x" | "y" | "z"
+  ) => {
+    return {
+      min: bb.position[axis] - bb.boundingBox.offset[axis],
+      max: bb.position[axis] + bb.boundingBox.offset[axis]
+    };
+  };
+
+  const aX = minMax(a, "x");
+  const aY = minMax(a, "y");
+  const aZ = minMax(a, "z");
+
+  const bX = minMax(b, "x");
+  const bY = minMax(b, "y");
+  const bZ = minMax(b, "z");
+
+  return (
+    aX.min <= bX.max &&
+    aX.max >= bX.min &&
+    (aY.min <= bY.max && aY.max >= bY.min) &&
+    (aZ.min <= bZ.max && aZ.max >= bZ.min)
+  );
+}
+
+function collisionSystem(entities: Entity[]): Message[] {
+  if (entities.length < 2) return [];
+
+  const pairs: [Entity, Entity][] = combinatorics
+    .combination(entities, 2)
+    .toArray();
+
+  const collisions = pairs
+    .map(pair => {
+      const pairCollided = intersect(
+        {
+          position: pair[0].body.transform.position,
+          boundingBox: pair[0].boundingBox
+        },
+        {
+          position: pair[1].body.transform.position,
+          boundingBox: pair[1].boundingBox
+        }
+      );
+
+      return pairCollided
+        ? createMessage(MessageType.COLLISION, { a: pair[0].id, b: pair[1].id })
+        : undefined;
+    })
+    .filter(x => x);
+
+  return collisions;
 }
 
 // function enemyMovement(
@@ -132,7 +174,7 @@ function playerMovement(
       Math.cos(degreeToRadian(entity.body.transform.rotation.y + 90));
 
   const vyGravity =
-    entity.body.transform.position.y > -10 ? gravityMessage.vy : 0;
+    entity.body.transform.position.y > 5 ? gravityMessage.vy : 0;
   const vyFlap = input.flap ? vyGravity + 0.06 : vyGravity;
 
   // decay
@@ -153,7 +195,7 @@ function playerMovement(
   const posY = entity.body.transform.position.y + dy;
 
   const position: Vec3 = {
-    y: posY <= -10 ? -10 : posY,
+    y: posY <= 5 ? 5 : posY,
     x: entity.body.transform.position.x + dx,
     z: entity.body.transform.position.z + dz
   };
@@ -185,6 +227,24 @@ function playerMovement(
 
 //   return [{ ...entity, health: { amount: health } }, []];
 // }
+
+function boundingBox(entity: Entity, messages: Message[]): [Entity, Message[]] {
+  const collisions = messages.filter(
+    (message: CollisionMessage) =>
+      message.subject === MessageType.COLLISION &&
+      (message.a === entity.id || message.b === entity.id)
+  );
+
+  const updatedEntity = {
+    ...entity,
+    boundingBox: {
+      ...entity.boundingBox,
+      activeCollision: collisions.length ? true : false
+    }
+  };
+
+  return [updatedEntity, messages];
+}
 
 function gravityField(
   entity: Entity,
@@ -232,12 +292,16 @@ export function step(
   inputMessages: Message[],
   clientId: string
 ): State {
-  const messages = [...inputMessages]; //, ...collisionSystem(state)];
+  const messages = [
+    ...inputMessages,
+    ...collisionSystem(state.filter(entity => entity.boundingBox !== undefined))
+  ];
 
   // TODO: need a better way to authenticate controls
   const logic: Logic = [
     [(e: Entity) => e.body !== undefined && e.id === clientId, gravityField],
-    [(e: Entity) => e.id === clientId, playerMovement]
+    [(e: Entity) => e.id === clientId, playerMovement],
+    [(e: Entity) => e.boundingBox !== undefined, boundingBox]
     // [(e: Entity) => e.follow !== undefined, enemyMovement]
   ];
 

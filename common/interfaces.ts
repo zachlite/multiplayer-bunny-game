@@ -40,8 +40,9 @@ interface PhysicalBody {
   transform: Transform;
 }
 
-interface BoundingBox {
-  dimensions: Vec3;
+export interface BoundingBox {
+  offset: Vec3;
+  activeCollision: boolean;
   yOffset: number;
 }
 
@@ -63,7 +64,8 @@ export enum MeshTypes {
 
 export enum MessageType {
   INPUT,
-  GRAVITY
+  GRAVITY,
+  COLLISION
 }
 
 interface BaseMessage {
@@ -78,7 +80,12 @@ export interface InputMessage extends BaseMessage {
   input: Input;
 }
 
-export type Message = GravityMessage | InputMessage;
+export interface CollisionMessage extends BaseMessage {
+  a: string;
+  b: string;
+}
+
+export type Message = GravityMessage | InputMessage | CollisionMessage;
 
 export interface Camera {
   position: Vec3;

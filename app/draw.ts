@@ -121,7 +121,7 @@ export const initDrawing = (r: regl.Regl) => {
       if (entity.boundingBox !== undefined) {
         const boundingBoxTransform: Transform = {
           ...entity.body.transform,
-          scale: entity.boundingBox.dimensions,
+          scale: entity.boundingBox.offset,
           rotation: { x: 0, y: 0, z: 0 },
           position: {
             ...entity.body.transform.position,
@@ -131,7 +131,8 @@ export const initDrawing = (r: regl.Regl) => {
 
         meshes[MeshTypes.BOUNDING_BOX].draw({
           modelViewMatrix: getModelViewMatrix(boundingBoxTransform, camera),
-          projectionMatrix
+          projectionMatrix,
+          color: entity.boundingBox.activeCollision ? [1, 0, 0] : [1, 1, 1]
         });
       }
     });

@@ -1,6 +1,8 @@
 import * as _ from "lodash";
 import { Entity, EntityType, MeshTypes } from "./interfaces";
 
+const scale = 10;
+
 export function initPlayer(id: string, meshType: MeshTypes): Entity {
   return {
     id,
@@ -9,13 +11,14 @@ export function initPlayer(id: string, meshType: MeshTypes): Entity {
     body: {
       velocity: { x: 0, y: 0, z: 0 },
       transform: {
-        position: { x: 0, y: 0, z: 0 },
+        position: { x: 0, y: 5, z: 0 },
         rotation: { x: 0, y: 0, z: 0 },
-        scale: { x: 10, y: 10, z: 10 }
+        scale: { x: scale, y: scale, z: scale }
       }
     },
     boundingBox: {
-      dimensions: { x: 10, y: 10, z: 10 },
+      offset: { x: scale / 2, y: scale / 2, z: scale / 2 },
+      activeCollision: false,
       yOffset: 0
     }
   };

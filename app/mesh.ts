@@ -12,7 +12,8 @@ export interface MeshData {
 export const Mesh = (r: regl.Regl, meshData: MeshData) => {
   const defaultUniforms = {
     modelViewMatrix: (context, props) => props.modelViewMatrix,
-    projectionMatrix: (context, props) => props.projectionMatrix
+    projectionMatrix: (context, props) => props.projectionMatrix,
+    vcolor: (context, props) => props.color || [1, 1, 1]
   };
 
   const { spatialData, shaders, textureData } = meshData;
