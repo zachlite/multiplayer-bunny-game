@@ -1,9 +1,4 @@
-import {
-  Message,
-  MessageType,
-  InputMessage,
-  GravityMessage
-} from "./interfaces";
+import { Message, MessageType, InputMessage } from "./interfaces";
 
 export const createMessage = (subject: MessageType, data: any): Message => {
   return { subject, ...data };

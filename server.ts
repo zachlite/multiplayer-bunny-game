@@ -48,9 +48,15 @@ const ground: Entity = {
     velocity: { x: 0, y: 0, z: 0 },
     transform: {
       position: { x: 0, y: 0, z: 0 },
+      lastPosition: { x: 0, y: 0, z: 0 },
       rotation: { x: 90, y: 0, z: 0 },
       scale: { x: 200, y: 200, z: 0 }
     }
+  },
+  boundingBox: {
+    offset: { x: 200, y: 0, z: 200 },
+    yOffset: 0,
+    activeCollision: false
   }
 };
 
@@ -62,6 +68,7 @@ const dummy: Entity = {
     velocity: { x: 0, y: 0, z: 0 },
     transform: {
       position: { x: 0, y: 5, z: -30 },
+      lastPosition: { x: 0, y: 5, z: -30 },
       rotation: { x: 0, y: 0, z: 0 },
       scale: { x: 10, y: 10, z: 10 }
     }

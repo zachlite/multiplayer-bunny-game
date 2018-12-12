@@ -19,6 +19,7 @@ export interface Vec3 {
 }
 
 export interface Transform {
+  lastPosition?: Vec3;
   position: Vec3;
   rotation: Vec3;
   scale: Vec3;
@@ -71,21 +72,22 @@ export enum MessageType {
 interface BaseMessage {
   subject: MessageType;
 }
-export interface GravityMessage extends BaseMessage {
-  vy: number;
-  entityId: string;
-}
 
 export interface InputMessage extends BaseMessage {
   input: Input;
 }
 
 export interface CollisionMessage extends BaseMessage {
-  a: string;
-  b: string;
+  axisOfCollision: "x" | "y" | "z";
+  entities: {
+    [entityId: string]: {
+      velocityBeforeCollision: Vec3;
+      positionBeforeCollision: Vec3;
+    };
+  };
 }
 
-export type Message = GravityMessage | InputMessage | CollisionMessage;
+export type Message = InputMessage | CollisionMessage;
 
 export interface Camera {
   position: Vec3;

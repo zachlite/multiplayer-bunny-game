@@ -3,7 +3,7 @@
     "client:build:watch": "parcel watch index.html",
     "client:build": "parcel build index.html",
     "client:dev": "parcel index.html",
-    "server:build:watch": "tsc -w --outDir ./dist-server server.ts",
+    "server:build:watch": "tsc -w --lib es6 --outDir ./dist-server server.ts",
     "server:start:watch": "nodemon ./dist-server/server.js",
     "server:build": "tsc --outDir ./dist-server server.ts",
     "server:start": "node ./dist-server/server.js",

@@ -10,7 +10,6 @@ import {
   Message,
   MessageType,
   InputMessage,
-  GravityMessage,
   BoundingBox,
   CollisionMessage
 } from "./interfaces";
@@ -58,10 +57,27 @@ interface Logic
 //   return messages;
 // }
 
+const axisOfCollision = ({ aX, aY, aZ }, { bX, bY, bZ }): "x" | "y" | "z" => {
+  const distances = {
+    x: Math.min(...[Math.abs(aX.min - bX.max), Math.abs(aX.max - bX.min)]),
+    y: Math.min(...[Math.abs(aY.min - bY.max), Math.abs(aY.max - bY.min)]),
+    z: Math.min(...[Math.abs(aZ.min - bZ.max), Math.abs(aZ.max - bZ.min)])
+  };
+
+  const axis = _.keys(distances).find(
+    key => distances[key] === Math.min(..._.values(distances))
+  );
+
+  return axis as "x" | "y" | "z";
+};
+
+// if there's an intersection, also return the axis of collision.
 function intersect(
   a: { position: Vec3; boundingBox: BoundingBox },
   b: { position: Vec3; boundingBox: BoundingBox }
-) {
+):
+  | { collision: true; axisOfCollision: "x" | "y" | "z" }
+  | { collision: false } {
   const minMax = (
     bb: { position: Vec3; boundingBox: BoundingBox },
     axis: "x" | "y" | "z"
@@ -80,12 +96,18 @@ function intersect(
   const bY = minMax(b, "y");
   const bZ = minMax(b, "z");
 
-  return (
+  const collided =
     aX.min <= bX.max &&
     aX.max >= bX.min &&
     (aY.min <= bY.max && aY.max >= bY.min) &&
-    (aZ.min <= bZ.max && aZ.max >= bZ.min)
-  );
+    (aZ.min <= bZ.max && aZ.max >= bZ.min);
+
+  return collided
+    ? {
+        collision: true,
+        axisOfCollision: axisOfCollision({ aX, aY, aZ }, { bX, bY, bZ })
+      }
+    : { collision: false };
 }
 
 function collisionSystem(entities: Entity[]): Message[] {
@@ -97,7 +119,7 @@ function collisionSystem(entities: Entity[]): Message[] {
 
   const collisions = pairs
     .map(pair => {
-      const pairCollided = intersect(
+      const collisionCheck = intersect(
         {
           position: pair[0].body.transform.position,
           boundingBox: pair[0].boundingBox
@@ -108,8 +130,24 @@ function collisionSystem(entities: Entity[]): Message[] {
         }
       );
 
-      return pairCollided
-        ? createMessage(MessageType.COLLISION, { a: pair[0].id, b: pair[1].id })
+      return collisionCheck.collision
+        ? ({
+            subject: MessageType.COLLISION,
+            axisOfCollision: collisionCheck.axisOfCollision,
+            entities: pair.reduce((acc, curr) => {
+              const velocityBeforeCollision = { ...curr.body.velocity };
+              const positionBeforeCollision = {
+                ...curr.body.transform.lastPosition
+              };
+              return {
+                ...acc,
+                [curr.id]: {
+                  velocityBeforeCollision,
+                  positionBeforeCollision
+                }
+              };
+            }, {})
+          } as CollisionMessage)
         : undefined;
     })
     .filter(x => x);
@@ -144,13 +182,16 @@ function playerMovement(
 ): [Entity, Message[]] {
   // TODO: create message on flap
 
+  // save position
+  const lastPosition = { ...entity.body.transform.position };
+
   const inputMessage = _.first(
     getMessages(messages, MessageType.INPUT)
   ) as InputMessage;
 
-  const gravityMessage = _.first(
-    getMessages(messages, MessageType.GRAVITY, entity.id)
-  ) as GravityMessage;
+  // const gravityMessage = _.first(
+  //   getMessages(messages, MessageType.GRAVITY, entity.id)
+  // ) as GravityMessage;
 
   const input = inputMessage.input;
 
@@ -173,9 +214,9 @@ function playerMovement(
       v *
       Math.cos(degreeToRadian(entity.body.transform.rotation.y + 90));
 
-  const vyGravity =
-    entity.body.transform.position.y > 5 ? gravityMessage.vy : 0;
-  const vyFlap = input.flap ? vyGravity + 0.06 : vyGravity;
+  const vyFlap = input.flap
+    ? entity.body.velocity.y + 0.06
+    : entity.body.velocity.y;
 
   // decay
   const decay = (v: number) => (Math.abs(v) < 0.00001 ? 0 : v * 0.99);
@@ -191,11 +232,8 @@ function playerMovement(
   const dx = velocity.x * FRAME;
   const dz = velocity.z * FRAME;
 
-  // keep position above the floor
-  const posY = entity.body.transform.position.y + dy;
-
   const position: Vec3 = {
-    y: posY <= 5 ? 5 : posY,
+    y: entity.body.transform.position.y + dy,
     x: entity.body.transform.position.x + dx,
     z: entity.body.transform.position.z + dz
   };
@@ -207,7 +245,12 @@ function playerMovement(
     y: entity.body.transform.rotation.y + dRotY
   };
 
-  const transform = { ...entity.body.transform, position, rotation };
+  const transform = {
+    ...entity.body.transform,
+    position,
+    rotation,
+    lastPosition
+  };
   return [{ ...entity, body: { ...entity.body, transform, velocity } }, []];
 }
 
@@ -232,11 +275,50 @@ function boundingBox(entity: Entity, messages: Message[]): [Entity, Message[]] {
   const collisions = messages.filter(
     (message: CollisionMessage) =>
       message.subject === MessageType.COLLISION &&
-      (message.a === entity.id || message.b === entity.id)
-  );
+      _.includes(Object.keys(message.entities), entity.id)
+  ) as CollisionMessage[];
 
-  const updatedEntity = {
+  // TODO: deal with more than 1 simultaneous collision.
+  // thought: if I only respond to 1 collision, will the 2nd collision still exist next frame?
+
+  const adjustPosition = (axis: string) => {
+    return collisions[0].axisOfCollision === axis
+      ? collisions[0].entities[entity.id].positionBeforeCollision[axis]
+      : entity.body.transform.position[axis];
+  };
+
+  const adjustedPosition = collisions.length
+    ? {
+        x: adjustPosition("x"),
+        y: adjustPosition("y"),
+        z: adjustPosition("z")
+      }
+    : entity.body.transform.position;
+
+  const adjustVelocity = (axis: string, damping: number = 1) => {
+    return collisions[0].axisOfCollision === axis
+      ? damping * entity.body.velocity[axis] * -1
+      : damping * entity.body.velocity[axis];
+  };
+
+  const adjustedVelocity = collisions.length
+    ? {
+        x: adjustVelocity("x"),
+        y: adjustVelocity("y", 0.5),
+        z: adjustVelocity("z")
+      }
+    : entity.body.velocity;
+
+  const transform = {
+    ...entity.body.transform,
+    position: adjustedPosition
+  };
+
+  const body = { ...entity.body, transform, velocity: adjustedVelocity };
+
+  const updatedEntity: Entity = {
     ...entity,
+    body,
     boundingBox: {
       ...entity.boundingBox,
       activeCollision: collisions.length ? true : false
@@ -255,14 +337,15 @@ function gravityField(
   const GRAVITY = 0.0001;
 
   // create a new message with calculated vy
-  const vy = entity.body.velocity.y - GRAVITY * FRAME;
+  const velocityWithGravity = {
+    ...entity.body.velocity,
+    y: entity.body.velocity.y - GRAVITY * FRAME
+  };
 
-  const message = createMessage(MessageType.GRAVITY, {
-    vy,
-    entityId: entity.id
-  });
+  const newBody = { ...entity.body, velocity: velocityWithGravity };
+  const newEntity = { ...entity, body: newBody };
 
-  return [entity, [...messages, message]];
+  return [newEntity, []];
 }
 
 function system(
@@ -300,8 +383,8 @@ export function step(
   // TODO: need a better way to authenticate controls
   const logic: Logic = [
     [(e: Entity) => e.body !== undefined && e.id === clientId, gravityField],
-    [(e: Entity) => e.id === clientId, playerMovement],
-    [(e: Entity) => e.boundingBox !== undefined, boundingBox]
+    [(e: Entity) => e.boundingBox !== undefined, boundingBox],
+    [(e: Entity) => e.id === clientId, playerMovement]
     // [(e: Entity) => e.follow !== undefined, enemyMovement]
   ];
 

@@ -4,6 +4,11 @@ import { Entity, EntityType, MeshTypes } from "./interfaces";
 const scale = 10;
 
 export function initPlayer(id: string, meshType: MeshTypes): Entity {
+  const startPosition = {
+    x: _.sample(_.range(50)),
+    y: 5,
+    z: _.sample(_.range(50))
+  };
   return {
     id,
     type: EntityType.PLAYER,
@@ -11,7 +16,8 @@ export function initPlayer(id: string, meshType: MeshTypes): Entity {
     body: {
       velocity: { x: 0, y: 0, z: 0 },
       transform: {
-        position: { x: 0, y: 5, z: 0 },
+        position: startPosition,
+        lastPosition: startPosition,
         rotation: { x: 0, y: 0, z: 0 },
         scale: { x: scale, y: scale, z: scale }
       }
