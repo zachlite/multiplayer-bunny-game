@@ -118,15 +118,11 @@ export const initDrawing = (r: regl.Regl) => {
         projectionMatrix
       });
 
-      if (entity.boundingBox !== undefined) {
+      if (entity.boundingBox !== undefined && !entity.boundingBox.hidden) {
         const boundingBoxTransform: Transform = {
           ...entity.body.transform,
           scale: entity.boundingBox.offset,
-          rotation: { x: 0, y: 0, z: 0 },
-          position: {
-            ...entity.body.transform.position,
-            y: entity.body.transform.position.y + entity.boundingBox.yOffset
-          }
+          rotation: { x: 0, y: 0, z: 0 }
         };
 
         meshes[MeshTypes.BOUNDING_BOX].draw({

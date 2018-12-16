@@ -55,8 +55,8 @@ const ground: Entity = {
   },
   boundingBox: {
     offset: { x: 200, y: 0, z: 200 },
-    yOffset: 0,
-    activeCollision: false
+    activeCollision: false,
+    hidden: true
   }
 };
 
@@ -67,17 +67,17 @@ const dummy: Entity = {
   body: {
     velocity: { x: 0, y: 0, z: 0 },
     transform: {
-      position: { x: 0, y: 5, z: -30 },
+      position: { x: 0, y: 10, z: -30 },
       lastPosition: { x: 0, y: 5, z: -30 },
       rotation: { x: 0, y: 0, z: 0 },
       scale: { x: 10, y: 10, z: 10 }
     }
-  },
-  boundingBox: {
-    offset: { x: 10, y: 5, z: 5 },
-    yOffset: 0,
-    activeCollision: false
   }
+  // boundingBox: {
+  //   offset: { x: 10, y: 5, z: 5 },
+  //   yOffset: 0,
+  //   activeCollision: false
+  // }
 };
 
 const cube: Entity = {

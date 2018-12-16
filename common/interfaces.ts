@@ -44,7 +44,7 @@ interface PhysicalBody {
 export interface BoundingBox {
   offset: Vec3;
   activeCollision: boolean;
-  yOffset: number;
+  hidden?: true;
 }
 
 export interface Entity {
@@ -66,7 +66,9 @@ export enum MeshTypes {
 export enum MessageType {
   INPUT,
   GRAVITY,
-  COLLISION
+  COLLISION_START,
+  COLLISION_END,
+  COLLISION_ACTIVE
 }
 
 interface BaseMessage {
@@ -77,7 +79,7 @@ export interface InputMessage extends BaseMessage {
   input: Input;
 }
 
-export interface CollisionMessage extends BaseMessage {
+export interface CollisionStartMessage extends BaseMessage {
   axisOfCollision: "x" | "y" | "z";
   entities: {
     [entityId: string]: {
@@ -87,7 +89,20 @@ export interface CollisionMessage extends BaseMessage {
   };
 }
 
-export type Message = InputMessage | CollisionMessage;
+export interface CollisionEndMessage extends BaseMessage {
+  entityIds: string[];
+}
+
+export interface CollisionActiveMessage extends BaseMessage {
+  entityIds: string[];
+  axisOfCollision: "x" | "y" | "z";
+}
+
+export type Message =
+  | InputMessage
+  | CollisionStartMessage
+  | CollisionEndMessage
+  | CollisionActiveMessage;
 
 export interface Camera {
   position: Vec3;
