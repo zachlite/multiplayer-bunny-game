@@ -91,6 +91,11 @@ const cube: Entity = {
       rotation: { x: 0, y: 0, z: 0 },
       scale: { x: 5, y: 5, z: 5 }
     }
+  },
+  boundingBox: {
+    offset: { x: 5, y: 5, z: 5 },
+    activeCollision: false,
+    hidden: true
   }
 };
 

@@ -1,23 +1,19 @@
-const combinatorics = require("js-combinatorics");
 import * as _ from "lodash";
 import {
   Entity,
   State,
-  Transform,
-  Input,
-  EntityType,
   Vec3,
   Message,
   MessageType,
   InputMessage,
-  BoundingBox,
   CollisionEndMessage,
   CollisionStartMessage,
   CollisionActiveMessage
 } from "./interfaces";
 import { FRAME } from "./clock";
 import { degreeToRadian } from "./math";
-import { getMessages, createMessage } from "./message";
+import { getMessages } from "./message";
+import { collisionSystem } from "./collision";
 
 // interface Message {
 //   type: string;
@@ -32,217 +28,6 @@ interface Logic
     ]
   > {}
 
-// function collisionSystem(state: State): Message[] {
-//   // find entities with transforms that overlap
-//   const overlaps = (r1: Transform, r2: Transform) => {
-//     return (
-//       r1.x < r2.x + r2.width &&
-//       r1.x + r1.width > r2.x &&
-//       r1.y < r2.y + r2.height &&
-//       r1.y + r1.height > r2.y
-//     );
-//   };
-
-//   const withTransform = state.filter(entity => entity.transform);
-//   const messages = _.flatten(
-//     withTransform.map(entity1 => {
-//       return withTransform.map(entity2 => {
-//         if (entity1.id === entity2.id) return null;
-
-//         return overlaps(entity1.transform, entity2.transform)
-//           ? { type: "COLLISION", data: { a: entity1.id, b: entity2.id } }
-//           : null;
-//       });
-//     })
-//   ).filter(m => m);
-
-//   return messages;
-// }
-
-const axisOfCollision = ({ aX, aY, aZ }, { bX, bY, bZ }): "x" | "y" | "z" => {
-  const distances = {
-    x: Math.min(...[Math.abs(aX.min - bX.max), Math.abs(aX.max - bX.min)]),
-    y: Math.min(...[Math.abs(aY.min - bY.max), Math.abs(aY.max - bY.min)]),
-    z: Math.min(...[Math.abs(aZ.min - bZ.max), Math.abs(aZ.max - bZ.min)])
-  };
-
-  const axis = _.keys(distances).find(
-    key => distances[key] === Math.min(..._.values(distances))
-  );
-
-  return axis as "x" | "y" | "z";
-};
-
-// if there's an intersection, also return the axis of collision.
-
-let activeCollisions = [];
-
-function intersect(
-  a: { position: Vec3; boundingBox: BoundingBox },
-  b: { position: Vec3; boundingBox: BoundingBox }
-):
-  | { collision: true; axisOfCollision: "x" | "y" | "z" }
-  | { collision: false } {
-  const minMax = (
-    bb: { position: Vec3; boundingBox: BoundingBox },
-    axis: "x" | "y" | "z"
-  ) => {
-    return {
-      min: bb.position[axis] - bb.boundingBox.offset[axis],
-      max: bb.position[axis] + bb.boundingBox.offset[axis]
-    };
-  };
-
-  const aX = minMax(a, "x");
-  const aY = minMax(a, "y");
-  const aZ = minMax(a, "z");
-
-  const bX = minMax(b, "x");
-  const bY = minMax(b, "y");
-  const bZ = minMax(b, "z");
-
-  const collided =
-    aX.min <= bX.max &&
-    aX.max >= bX.min &&
-    (aY.min <= bY.max && aY.max >= bY.min) &&
-    (aZ.min <= bZ.max && aZ.max >= bZ.min);
-
-  return collided
-    ? {
-        collision: true,
-        axisOfCollision: axisOfCollision({ aX, aY, aZ }, { bX, bY, bZ })
-      }
-    : { collision: false };
-}
-
-function collisionSystem(entities: Entity[]): Message[] {
-  if (entities.length < 2) return [];
-
-  const pairs: [Entity, Entity][] = combinatorics
-    .combination(entities, 2)
-    .toArray();
-
-  const collisions = pairs
-    .map(pair => {
-      const collisionCheck = intersect(
-        {
-          position: pair[0].body.transform.position,
-          boundingBox: pair[0].boundingBox
-        },
-        {
-          position: pair[1].body.transform.position,
-          boundingBox: pair[1].boundingBox
-        }
-      );
-
-      // if collisions:
-      // store in collisions list
-      // return collision start message
-
-      // if no collisions:
-      // if pair is not in collision list, return undefined
-      // if pair is in collision list, remove from collision list and return collision end message
-
-      const pairIdentifier = _.orderBy([pair[0].id, pair[1].id]).join("-");
-
-      // collision
-      // if there isn't a current collision, save current collision and return colliison start message
-      // if there is a current collision, return undefined
-
-      // no collision
-      // if there isn't a current collision, return undefined
-      // if there is a current colliison, return collision end message and delete current collision
-
-      if (collisionCheck.collision) {
-        if (_.includes(activeCollisions, pairIdentifier)) {
-          console.log("ACTIVE COLLISION");
-          return {
-            subject: MessageType.COLLISION_ACTIVE,
-            entityIds: [pair[0].id, pair[1].id],
-            axisOfCollision: collisionCheck.axisOfCollision
-          } as CollisionActiveMessage;
-        }
-        activeCollisions.push(pairIdentifier);
-        console.log("COLLISION STARTING");
-        return {
-          subject: MessageType.COLLISION_START,
-          axisOfCollision: collisionCheck.axisOfCollision,
-          entities: pair.reduce((acc, curr) => {
-            const velocityBeforeCollision = { ...curr.body.velocity };
-            const positionBeforeCollision = {
-              ...curr.body.transform.lastPosition
-            };
-            return {
-              ...acc,
-              [curr.id]: {
-                velocityBeforeCollision,
-                positionBeforeCollision
-              }
-            };
-          }, {})
-        } as CollisionStartMessage;
-      } else {
-        if (_.includes(activeCollisions, pairIdentifier)) {
-          console.log("COLLISION ENDING");
-          activeCollisions = activeCollisions.filter(
-            ac => ac !== pairIdentifier
-          );
-          return {
-            subject: MessageType.COLLISION_END,
-            entityIds: [pair[0].id, pair[1].id]
-          } as CollisionEndMessage;
-        }
-
-        console.log("no collision");
-        return undefined;
-      }
-
-      // return collisionCheck.collision
-      //   ? ({
-      //       subject: MessageType.COLLISION,
-      //       axisOfCollision: collisionCheck.axisOfCollision,
-      //       entities: pair.reduce((acc, curr) => {
-      //         const velocityBeforeCollision = { ...curr.body.velocity };
-      //         const positionBeforeCollision = {
-      //           ...curr.body.transform.lastPosition
-      //         };
-      //         return {
-      //           ...acc,
-      //           [curr.id]: {
-      //             velocityBeforeCollision,
-      //             positionBeforeCollision
-      //           }
-      //         };
-      //       }, {})
-      //     } as CollisionMessage)
-      //   : undefined;
-    })
-    .filter(x => x);
-
-  return collisions;
-}
-
-// function enemyMovement(
-//   entity: Entity,
-//   messages: Message[]
-// ): [Entity, Message[]] {
-//   // move towards player.
-
-//   // if the player moves, update follow.destination
-//   const playerMovedMessage = messages.filter(
-//     message => message.type === "PLAYER_MOVED"
-//   );
-
-//   const destination: { x: number; y: number } = playerMovedMessage.length
-//     ? playerMovedMessage[0].data.position
-//     : entity.follow.destination;
-
-//   // update transform according to follow.destination
-//   const { x, y } = destination;
-//   const transform = { ...entity.transform, x: x + 30, y };
-//   return [{ ...entity, transform, follow: { destination: { x, y } } }, []];
-// }
-
 function playerMovement(
   entity: Entity,
   messages: Message[]
@@ -256,11 +41,23 @@ function playerMovement(
     getMessages(messages, MessageType.INPUT)
   ) as InputMessage;
 
-  // const gravityMessage = _.first(
-  //   getMessages(messages, MessageType.GRAVITY, entity.id)
-  // ) as GravityMessage;
-
   const input = inputMessage.input;
+
+  const activeCollisionX = _.find(
+    messages,
+    (message: CollisionActiveMessage) =>
+      message.subject === MessageType.COLLISION_ACTIVE &&
+      _.includes(message.entityIds, entity.id) &&
+      message.axisOfCollision === "x"
+  );
+
+  const activeCollisionZ = _.find(
+    messages,
+    (message: CollisionActiveMessage) =>
+      message.subject === MessageType.COLLISION_ACTIVE &&
+      _.includes(message.entityIds, entity.id) &&
+      message.axisOfCollision === "z"
+  );
 
   // Velocity
   const v = 0.001;
@@ -289,9 +86,9 @@ function playerMovement(
   const decay = (v: number) => (Math.abs(v) < 0.00001 ? 0 : v * 0.99);
 
   const velocity = {
-    x: decay(vx),
+    x: activeCollisionX ? entity.body.velocity.x : decay(vx),
     y: vyFlap,
-    z: decay(vz)
+    z: activeCollisionZ ? entity.body.velocity.z : decay(vz)
   };
 
   // Position
@@ -345,7 +142,7 @@ function collisionStart(
   const collisions = messages.filter(
     (message: CollisionStartMessage) =>
       message.subject === MessageType.COLLISION_START &&
-      _.includes(Object.keys(message.entities), entity.id)
+      _.includes(message.entityIds, entity.id)
   ) as CollisionStartMessage[];
 
   // TODO: deal with more than 1 simultaneous collision.
@@ -445,7 +242,7 @@ function gravityField(
     messages,
     (message: CollisionStartMessage) =>
       message.subject === MessageType.COLLISION_START &&
-      _.includes(Object.keys(message.entities), entity.id) &&
+      _.includes(message.entityIds, entity.id) &&
       message.axisOfCollision === "y"
   );
 

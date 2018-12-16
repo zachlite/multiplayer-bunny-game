@@ -24,7 +24,8 @@ export function initPlayer(id: string, meshType: MeshTypes): Entity {
     },
     boundingBox: {
       offset: { x: scale / 2, y: scale / 2, z: scale / 2 },
-      activeCollision: false
+      activeCollision: false,
+      hidden: true
     }
   };
 }

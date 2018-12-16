@@ -81,12 +81,7 @@ export interface InputMessage extends BaseMessage {
 
 export interface CollisionStartMessage extends BaseMessage {
   axisOfCollision: "x" | "y" | "z";
-  entities: {
-    [entityId: string]: {
-      velocityBeforeCollision: Vec3;
-      positionBeforeCollision: Vec3;
-    };
-  };
+  entityIds: string[];
 }
 
 export interface CollisionEndMessage extends BaseMessage {
