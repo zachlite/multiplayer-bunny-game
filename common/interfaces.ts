@@ -19,7 +19,6 @@ export interface Vec3 {
 }
 
 export interface Transform {
-  lastPosition?: Vec3;
   position: Vec3;
   rotation: Vec3;
   scale: Vec3;
@@ -41,10 +40,12 @@ interface PhysicalBody {
   transform: Transform;
 }
 
-export interface BoundingBox {
-  offset: Vec3;
-  activeCollision: boolean;
-  hidden?: true;
+export interface Collider {
+  position: Vec3;
+  scale: Vec3;
+  isTrigger: boolean;
+  debug__activeCollision: boolean;
+  debug__drawOutline: boolean;
 }
 
 export interface Entity {
@@ -52,7 +53,7 @@ export interface Entity {
   type: EntityType;
   mesh?: Mesh;
   body?: PhysicalBody;
-  boundingBox?: BoundingBox;
+  collider?: Collider;
 }
 
 export enum MeshTypes {

@@ -2,7 +2,7 @@ const combinatorics = require("js-combinatorics");
 import * as _ from "lodash";
 import {
   Vec3,
-  BoundingBox,
+  Collider,
   Entity,
   Message,
   MessageType,
@@ -26,28 +26,25 @@ function axisOfCollision({ aX, aY, aZ }, { bX, bY, bZ }): "x" | "y" | "z" {
 }
 
 function intersect(
-  a: { position: Vec3; boundingBox: BoundingBox },
-  b: { position: Vec3; boundingBox: BoundingBox }
+  colliderA: Collider,
+  colliderB: Collider
 ):
   | { collision: true; axisOfCollision: "x" | "y" | "z" }
   | { collision: false } {
-  const minMax = (
-    bb: { position: Vec3; boundingBox: BoundingBox },
-    axis: "x" | "y" | "z"
-  ) => {
+  const minMax = (collider: Collider, axis: "x" | "y" | "z") => {
     return {
-      min: bb.position[axis] - bb.boundingBox.offset[axis],
-      max: bb.position[axis] + bb.boundingBox.offset[axis]
+      min: collider.position[axis] - collider.scale[axis],
+      max: collider.position[axis] + collider.scale[axis]
     };
   };
 
-  const aX = minMax(a, "x");
-  const aY = minMax(a, "y");
-  const aZ = minMax(a, "z");
+  const aX = minMax(colliderA, "x");
+  const aY = minMax(colliderA, "y");
+  const aZ = minMax(colliderA, "z");
 
-  const bX = minMax(b, "x");
-  const bY = minMax(b, "y");
-  const bZ = minMax(b, "z");
+  const bX = minMax(colliderB, "x");
+  const bY = minMax(colliderB, "y");
+  const bZ = minMax(colliderB, "z");
 
   const collided =
     aX.min <= bX.max &&
@@ -80,17 +77,7 @@ export function collisionSystem(entities: Entity[]): Message[] {
     | CollisionStartMessage
     | CollisionEndMessage
     | null => {
-    const entity1 = {
-      position: pair[0].body.transform.position,
-      boundingBox: pair[0].boundingBox
-    };
-
-    const entity2 = {
-      position: pair[1].body.transform.position,
-      boundingBox: pair[1].boundingBox
-    };
-
-    const collisionCheck = intersect(entity1, entity2);
+    const collisionCheck = intersect(pair[0].collider, pair[1].collider);
     const pairIdentifier = _.orderBy([pair[0].id, pair[1].id]).join("-");
     const pairAlreadyColliding = _.includes(activeCollisions, pairIdentifier);
 

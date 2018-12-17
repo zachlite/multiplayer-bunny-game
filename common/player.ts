@@ -17,15 +17,16 @@ export function initPlayer(id: string, meshType: MeshTypes): Entity {
       velocity: { x: 0, y: 0, z: 0 },
       transform: {
         position: startPosition,
-        lastPosition: startPosition,
         rotation: { x: 0, y: 0, z: 0 },
         scale: { x: scale, y: scale, z: scale }
       }
     },
-    boundingBox: {
-      offset: { x: scale / 2, y: scale / 2, z: scale / 2 },
-      activeCollision: false,
-      hidden: true
+    collider: {
+      position: startPosition,
+      scale: { x: scale / 2, y: scale / 2, z: scale / 2 },
+      isTrigger: false,
+      debug__activeCollision: false,
+      debug__drawOutline: true
     }
   };
 }

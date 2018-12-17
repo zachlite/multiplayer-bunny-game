@@ -78,7 +78,11 @@ export const initDrawing = (r: regl.Regl) => {
     }),
     [MeshTypes.GROUND]: Mesh(r, {
       spatialData: ground,
-      shaders: defaultShader
+      shaders: cubeShader,
+      textureData: {
+        texture: r.texture([[[0, 0, 255]]]),
+        coordinates: [[0, 0], [0, 0], [0, 0], [0, 0]]
+      }
     }),
     [MeshTypes.CUBE]: Mesh(r, {
       spatialData: cube,
@@ -99,7 +103,7 @@ export const initDrawing = (r: regl.Regl) => {
     })
   };
 
-  const projectionMatrix = getProjectionMatrix(640, 480);
+  const projectionMatrix = getProjectionMatrix(1080, 720);
 
   return (state: State, clientId: string) => {
     // create camera for player
@@ -118,17 +122,17 @@ export const initDrawing = (r: regl.Regl) => {
         projectionMatrix
       });
 
-      if (entity.boundingBox !== undefined && !entity.boundingBox.hidden) {
+      if (entity.collider !== undefined && entity.collider.debug__drawOutline) {
         const boundingBoxTransform: Transform = {
-          ...entity.body.transform,
-          scale: entity.boundingBox.offset,
+          position: entity.collider.position,
+          scale: entity.collider.scale,
           rotation: { x: 0, y: 0, z: 0 }
         };
 
         meshes[MeshTypes.BOUNDING_BOX].draw({
           modelViewMatrix: getModelViewMatrix(boundingBoxTransform, camera),
           projectionMatrix,
-          color: entity.boundingBox.activeCollision ? [1, 0, 0] : [1, 1, 1]
+          color: entity.collider.debug__activeCollision ? [1, 0, 0] : [1, 1, 1]
         });
       }
     });

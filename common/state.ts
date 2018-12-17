@@ -8,7 +8,8 @@ import {
   InputMessage,
   CollisionEndMessage,
   CollisionStartMessage,
-  CollisionActiveMessage
+  CollisionActiveMessage,
+  Collider
 } from "./interfaces";
 import { FRAME } from "./clock";
 import { degreeToRadian } from "./math";
@@ -148,20 +149,6 @@ function collisionStart(
   // TODO: deal with more than 1 simultaneous collision.
   // thought: if I only respond to 1 collision, will the 2nd collision still exist next frame?
 
-  // const adjustPosition = (axis: string) => {
-  //   return collisions[0].axisOfCollision === axis
-  //     ? collisions[0].entities[entity.id].positionBeforeCollision[axis]
-  //     : entity.body.transform.position[axis];
-  // };
-
-  // const adjustedPosition = collisions.length
-  //   ? {
-  //       x: adjustPosition("x"),
-  //       y: adjustPosition("y"),
-  //       z: adjustPosition("z")
-  //     }
-  //   : entity.body.transform.position;
-
   const adjustVelocity = (axis: string, damping: number = 1) => {
     const damped = damping * entity.body.velocity[axis];
     const capped = Math.abs(damped) < 0.001 ? 0 : damped;
@@ -176,21 +163,16 @@ function collisionStart(
       }
     : entity.body.velocity;
 
-  // const transform = {
-  //   ...entity.body.transform,
-  //   position: adjustedPosition
-  // };
-
   const body = { ...entity.body, velocity: adjustedVelocity };
 
   const updatedEntity: Entity = {
     ...entity,
     body,
-    boundingBox: {
-      ...entity.boundingBox,
-      activeCollision: collisions.length
+    collider: {
+      ...entity.collider,
+      debug__activeCollision: collisions.length
         ? true
-        : entity.boundingBox.activeCollision
+        : entity.collider.debug__activeCollision
     }
   };
 
@@ -208,13 +190,13 @@ function collisionEnd(
       _.includes(message.entityIds, entity.id)
   );
 
-  const updatedEntity = {
+  const updatedEntity: Entity = {
     ...entity,
-    boundingBox: {
-      ...entity.boundingBox,
-      activeCollision: collisionEnds.length
+    collider: {
+      ...entity.collider,
+      debug__activeCollision: collisionEnds.length
         ? false
-        : entity.boundingBox.activeCollision
+        : entity.collider.debug__activeCollision
     }
   };
 
@@ -260,6 +242,23 @@ function gravityField(
   return [newEntity, []];
 }
 
+function updateCollider(
+  entity: Entity,
+  messages: Message[]
+): [Entity, Message[]] {
+  const collider: Collider = {
+    ...entity.collider,
+    position: { ...entity.body.transform.position }
+  };
+
+  const updated = {
+    ...entity,
+    collider
+  };
+
+  return [updated, []];
+}
+
 function system(
   state: State,
   messages: Message[],
@@ -289,15 +288,17 @@ export function step(
 ): State {
   const messages = [
     ...inputMessages,
-    ...collisionSystem(state.filter(entity => entity.boundingBox !== undefined))
+    ...collisionSystem(state.filter(entity => entity.collider !== undefined))
   ];
 
   // TODO: need a better way to authenticate controls
   const logic: Logic = [
     [(e: Entity) => e.body !== undefined && e.id === clientId, gravityField],
-    [(e: Entity) => e.boundingBox !== undefined, collisionStart],
-    [(e: Entity) => e.boundingBox !== undefined, collisionEnd],
-    [(e: Entity) => e.id === clientId, playerMovement]
+    [(e: Entity) => e.collider !== undefined, collisionStart],
+    [(e: Entity) => e.collider !== undefined, collisionEnd],
+    [(e: Entity) => e.id === clientId, playerMovement],
+    [(e: Entity) => e.collider !== undefined, updateCollider]
+
     // [(e: Entity) => e.follow !== undefined, enemyMovement]
   ];
 

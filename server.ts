@@ -48,15 +48,16 @@ const ground: Entity = {
     velocity: { x: 0, y: 0, z: 0 },
     transform: {
       position: { x: 0, y: 0, z: 0 },
-      lastPosition: { x: 0, y: 0, z: 0 },
-      rotation: { x: 90, y: 0, z: 0 },
-      scale: { x: 200, y: 200, z: 0 }
+      rotation: { x: 0, y: 0, z: 0 },
+      scale: { x: 200, y: 0, z: 200 }
     }
   },
-  boundingBox: {
-    offset: { x: 200, y: 0, z: 200 },
-    activeCollision: false,
-    hidden: true
+  collider: {
+    position: { x: 0, y: 0, z: 0 },
+    scale: { x: 200, y: 0, z: 200 },
+    isTrigger: false,
+    debug__activeCollision: false,
+    debug__drawOutline: false
   }
 };
 
@@ -68,16 +69,10 @@ const dummy: Entity = {
     velocity: { x: 0, y: 0, z: 0 },
     transform: {
       position: { x: 0, y: 10, z: -30 },
-      lastPosition: { x: 0, y: 5, z: -30 },
       rotation: { x: 0, y: 0, z: 0 },
       scale: { x: 10, y: 10, z: 10 }
     }
   }
-  // boundingBox: {
-  //   offset: { x: 10, y: 5, z: 5 },
-  //   yOffset: 0,
-  //   activeCollision: false
-  // }
 };
 
 const cube: Entity = {
@@ -92,10 +87,12 @@ const cube: Entity = {
       scale: { x: 5, y: 5, z: 5 }
     }
   },
-  boundingBox: {
-    offset: { x: 5, y: 5, z: 5 },
-    activeCollision: false,
-    hidden: true
+  collider: {
+    position: { x: 50, y: 5, z: -30 },
+    scale: { x: 5, y: 5, z: 5 },
+    isTrigger: false,
+    debug__activeCollision: false,
+    debug__drawOutline: true
   }
 };
 
