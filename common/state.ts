@@ -9,7 +9,8 @@ import {
   CollisionEndMessage,
   CollisionStartMessage,
   CollisionActiveMessage,
-  Collider
+  Collider,
+  TriggerActiveMessage
 } from "./interfaces";
 import { FRAME } from "./clock";
 import { degreeToRadian } from "./math";
@@ -151,7 +152,7 @@ function collisionStart(
 
   const adjustVelocity = (axis: string, damping: number = 1) => {
     const damped = damping * entity.body.velocity[axis];
-    const capped = Math.abs(damped) < 0.001 ? 0 : damped;
+    const capped = Math.abs(damped) < 0.005 ? 0 : damped;
     return collisions[0].axisOfCollision === axis ? capped * -1 : capped;
   };
 
@@ -167,37 +168,7 @@ function collisionStart(
 
   const updatedEntity: Entity = {
     ...entity,
-    body,
-    collider: {
-      ...entity.collider,
-      debug__activeCollision: collisions.length
-        ? true
-        : entity.collider.debug__activeCollision
-    }
-  };
-
-  return [updatedEntity, []];
-}
-
-function collisionEnd(
-  entity: Entity,
-  messages: Message[]
-): [Entity, Message[]] {
-  // TODO: this doesn't consider multiple collisions happening at the same time.
-  const collisionEnds = messages.filter(
-    (message: CollisionEndMessage) =>
-      message.subject === MessageType.COLLISION_END &&
-      _.includes(message.entityIds, entity.id)
-  );
-
-  const updatedEntity: Entity = {
-    ...entity,
-    collider: {
-      ...entity.collider,
-      debug__activeCollision: collisionEnds.length
-        ? false
-        : entity.collider.debug__activeCollision
-    }
+    body
   };
 
   return [updatedEntity, []];
@@ -242,7 +213,7 @@ function gravityField(
   return [newEntity, []];
 }
 
-function updateCollider(
+function updateColliderTransform(
   entity: Entity,
   messages: Message[]
 ): [Entity, Message[]] {
@@ -257,6 +228,45 @@ function updateCollider(
   };
 
   return [updated, []];
+}
+
+function updateColliderDebugInfo(
+  entity: Entity,
+  messages: Message[]
+): [Entity, Message[]] {
+  const collisionStart = _.find(
+    messages,
+    (message: CollisionStartMessage) =>
+      message.subject === MessageType.COLLISION_START &&
+      _.includes(message.entityIds, entity.id)
+  );
+
+  const collisionActive = _.find(
+    messages,
+    (message: CollisionActiveMessage) =>
+      message.subject === MessageType.COLLISION_ACTIVE &&
+      _.includes(message.entityIds, entity.id)
+  );
+
+  const triggerActive = _.find(
+    messages,
+    (message: TriggerActiveMessage) =>
+      message.subject === MessageType.TRIGGER_ACTIVE &&
+      (message.entityId === entity.id || message.triggerId === entity.id)
+  );
+
+  const updatedEntity = {
+    ...entity,
+    collider: {
+      ...entity.collider,
+      debug__activeCollision:
+        collisionStart !== undefined ||
+        collisionActive !== undefined ||
+        triggerActive !== undefined
+    }
+  };
+
+  return [updatedEntity, []];
 }
 
 function system(
@@ -291,15 +301,31 @@ export function step(
     ...collisionSystem(state.filter(entity => entity.collider !== undefined))
   ];
 
+  const triggerMessages = messages.filter(
+    m => m.subject === MessageType.TRIGGER_ACTIVE
+  );
+  const gameWonMessage = _.find(
+    triggerMessages,
+    (message: TriggerActiveMessage) => message.triggerId === "trigger"
+  ) as TriggerActiveMessage;
+
+  if (gameWonMessage) {
+    console.log(`${gameWonMessage.entityId} won the game!`);
+  }
+
   // TODO: need a better way to authenticate controls
   const logic: Logic = [
     [(e: Entity) => e.body !== undefined && e.id === clientId, gravityField],
-    [(e: Entity) => e.collider !== undefined, collisionStart],
-    [(e: Entity) => e.collider !== undefined, collisionEnd],
+    [(e: Entity) => e.collider !== undefined, updateColliderDebugInfo],
+    [
+      (e: Entity) => e.collider !== undefined && e.body !== undefined,
+      collisionStart
+    ],
     [(e: Entity) => e.id === clientId, playerMovement],
-    [(e: Entity) => e.collider !== undefined, updateCollider]
-
-    // [(e: Entity) => e.follow !== undefined, enemyMovement]
+    [
+      (e: Entity) => e.collider !== undefined && e.body !== undefined,
+      updateColliderTransform
+    ]
   ];
 
   const nextState = logic.reduce(

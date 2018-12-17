@@ -1,5 +1,5 @@
 import * as _ from "lodash";
-import { Entity, EntityType, MeshTypes } from "./interfaces";
+import { Entity, MeshTypes } from "./interfaces";
 
 const scale = 10;
 
@@ -11,7 +11,6 @@ export function initPlayer(id: string, meshType: MeshTypes): Entity {
   };
   return {
     id,
-    type: EntityType.PLAYER,
     mesh: { meshType },
     body: {
       velocity: { x: 0, y: 0, z: 0 },

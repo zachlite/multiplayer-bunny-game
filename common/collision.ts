@@ -8,7 +8,8 @@ import {
   MessageType,
   CollisionActiveMessage,
   CollisionStartMessage,
-  CollisionEndMessage
+  CollisionEndMessage,
+  TriggerActiveMessage
 } from "./interfaces";
 
 function axisOfCollision({ aX, aY, aZ }, { bX, bY, bZ }): "x" | "y" | "z" {
@@ -76,8 +77,21 @@ export function collisionSystem(entities: Entity[]): Message[] {
     | CollisionActiveMessage
     | CollisionStartMessage
     | CollisionEndMessage
+    | TriggerActiveMessage
     | null => {
     const collisionCheck = intersect(pair[0].collider, pair[1].collider);
+
+    if (
+      collisionCheck.collision &&
+      (pair[0].collider.isTrigger || pair[1].collider.isTrigger)
+    ) {
+      return {
+        subject: MessageType.TRIGGER_ACTIVE,
+        triggerId: pair[0].collider.isTrigger ? pair[0].id : pair[1].id,
+        entityId: pair[0].collider.isTrigger ? pair[1].id : pair[0].id
+      };
+    }
+
     const pairIdentifier = _.orderBy([pair[0].id, pair[1].id]).join("-");
     const pairAlreadyColliding = _.includes(activeCollisions, pairIdentifier);
 

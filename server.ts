@@ -9,7 +9,6 @@ import {
   State,
   MeshTypes,
   Entity,
-  EntityType,
   MessageType
 } from "./common/interfaces";
 import { step } from "./common/state";
@@ -42,7 +41,6 @@ let state: State = [];
 // let's create a ground and render it
 const ground: Entity = {
   id: "ground",
-  type: EntityType.GROUND,
   mesh: { meshType: MeshTypes.GROUND },
   body: {
     velocity: { x: 0, y: 0, z: 0 },
@@ -63,7 +61,6 @@ const ground: Entity = {
 
 const dummy: Entity = {
   id: "dummy",
-  type: EntityType.PLAYER,
   mesh: { meshType: MeshTypes.TEAPOT },
   body: {
     velocity: { x: 0, y: 0, z: 0 },
@@ -77,7 +74,6 @@ const dummy: Entity = {
 
 const cube: Entity = {
   id: "cube",
-  type: EntityType.CUBE,
   mesh: { meshType: MeshTypes.CUBE },
   body: {
     velocity: { x: 0, y: 0, z: 0 },
@@ -96,9 +92,22 @@ const cube: Entity = {
   }
 };
 
+const trigger: Entity = {
+  id: "trigger",
+  mesh: { meshType: MeshTypes.TRIGGER },
+  collider: {
+    position: { x: -50, y: 5, z: -30 },
+    scale: { x: 2, y: 2, z: 2 },
+    isTrigger: true,
+    debug__activeCollision: false,
+    debug__drawOutline: true
+  }
+};
+
 state.push(cube);
 state.push(ground);
 state.push(dummy);
+state.push(trigger);
 
 let clientIds: { [socketId: string]: string } = {};
 

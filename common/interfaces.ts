@@ -24,12 +24,6 @@ export interface Transform {
   scale: Vec3;
 }
 
-export enum EntityType {
-  PLAYER,
-  GROUND,
-  CUBE
-}
-
 interface Mesh {
   meshType: MeshTypes;
 }
@@ -50,7 +44,6 @@ export interface Collider {
 
 export interface Entity {
   id: string;
-  type: EntityType;
   mesh?: Mesh;
   body?: PhysicalBody;
   collider?: Collider;
@@ -61,7 +54,8 @@ export enum MeshTypes {
   TEAPOT,
   GROUND,
   CUBE,
-  BOUNDING_BOX
+  BOUNDING_BOX,
+  TRIGGER
 }
 
 export enum MessageType {
@@ -69,7 +63,8 @@ export enum MessageType {
   GRAVITY,
   COLLISION_START,
   COLLISION_END,
-  COLLISION_ACTIVE
+  COLLISION_ACTIVE,
+  TRIGGER_ACTIVE
 }
 
 interface BaseMessage {
@@ -94,11 +89,17 @@ export interface CollisionActiveMessage extends BaseMessage {
   axisOfCollision: "x" | "y" | "z";
 }
 
+export interface TriggerActiveMessage extends BaseMessage {
+  triggerId: string;
+  entityId: string;
+}
+
 export type Message =
   | InputMessage
   | CollisionStartMessage
   | CollisionEndMessage
-  | CollisionActiveMessage;
+  | CollisionActiveMessage
+  | TriggerActiveMessage;
 
 export interface Camera {
   position: Vec3;

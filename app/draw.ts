@@ -100,6 +100,18 @@ export const initDrawing = (r: regl.Regl) => {
       spatialData: boundingBox,
       shaders: boundingBoxShader,
       primitive: "lines"
+    }),
+
+    [MeshTypes.TRIGGER]: Mesh(r, {
+      spatialData: cube,
+      shaders: cubeShader,
+      textureData: {
+        texture: r.texture([
+          [[255, 255, 0], [0, 0, 0, 0]],
+          [[0, 0, 0, 0], [255, 255, 0]]
+        ]),
+        coordinates: cube.textureCoordinates
+      }
     })
   };
 
@@ -115,12 +127,17 @@ export const initDrawing = (r: regl.Regl) => {
     const camera = getCamera(player ? player.body.transform : undefined);
 
     state.forEach(entity => {
-      const modelViewMatrix = getModelViewMatrix(entity.body.transform, camera);
+      if (entity.body !== undefined) {
+        const modelViewMatrix = getModelViewMatrix(
+          entity.body.transform,
+          camera
+        );
 
-      meshes[entity.mesh.meshType].draw({
-        modelViewMatrix,
-        projectionMatrix
-      });
+        meshes[entity.mesh.meshType].draw({
+          modelViewMatrix,
+          projectionMatrix
+        });
+      }
 
       if (entity.collider !== undefined && entity.collider.debug__drawOutline) {
         const boundingBoxTransform: Transform = {
