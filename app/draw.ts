@@ -5,8 +5,7 @@ import {
   Transform,
   Camera,
   Entity,
-  MeshTypes,
-  EntityType
+  MeshTypes
 } from "../common/interfaces";
 import { degreeToRadian } from "../common/math";
 

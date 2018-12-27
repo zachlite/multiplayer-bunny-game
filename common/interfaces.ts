@@ -38,12 +38,14 @@ export interface Collider {
   position: Vec3;
   scale: Vec3;
   isTrigger: boolean;
+  isStatic: boolean;
   debug__activeCollision: boolean;
   debug__drawOutline: boolean;
 }
 
 export interface Entity {
   id: string;
+  type?: "PLAYER";
   mesh?: Mesh;
   body?: PhysicalBody;
   collider?: Collider;
@@ -73,6 +75,7 @@ interface BaseMessage {
 
 export interface InputMessage extends BaseMessage {
   input: Input;
+  clientId: string;
 }
 
 export interface CollisionStartMessage extends BaseMessage {

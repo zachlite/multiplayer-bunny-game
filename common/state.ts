@@ -152,7 +152,7 @@ function collisionStart(
 
   const adjustVelocity = (axis: string, damping: number = 1) => {
     const damped = damping * entity.body.velocity[axis];
-    const capped = Math.abs(damped) < 0.005 ? 0 : damped;
+    const capped = Math.abs(damped) < 0.001 ? 0 : damped;
     return collisions[0].axisOfCollision === axis ? capped * -1 : capped;
   };
 

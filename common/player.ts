@@ -11,6 +11,7 @@ export function initPlayer(id: string, meshType: MeshTypes): Entity {
   };
   return {
     id,
+    type: "PLAYER",
     mesh: { meshType },
     body: {
       velocity: { x: 0, y: 0, z: 0 },
@@ -24,6 +25,7 @@ export function initPlayer(id: string, meshType: MeshTypes): Entity {
       position: startPosition,
       scale: { x: scale / 2, y: scale / 2, z: scale / 2 },
       isTrigger: false,
+      isStatic: false,
       debug__activeCollision: false,
       debug__drawOutline: true
     }

@@ -54,8 +54,9 @@ const ground: Entity = {
     position: { x: 0, y: 0, z: 0 },
     scale: { x: 200, y: 0, z: 200 },
     isTrigger: false,
+    isStatic: true,
     debug__activeCollision: false,
-    debug__drawOutline: false
+    debug__drawOutline: true
   }
 };
 
@@ -72,25 +73,43 @@ const dummy: Entity = {
   }
 };
 
-const cube: Entity = {
-  id: "cube",
-  mesh: { meshType: MeshTypes.CUBE },
-  body: {
-    velocity: { x: 0, y: 0, z: 0 },
-    transform: {
-      position: { x: 50, y: 5, z: -30 },
-      rotation: { x: 0, y: 0, z: 0 },
-      scale: { x: 5, y: 5, z: 5 }
-    }
-  },
-  collider: {
-    position: { x: 50, y: 5, z: -30 },
-    scale: { x: 5, y: 5, z: 5 },
-    isTrigger: false,
-    debug__activeCollision: false,
-    debug__drawOutline: true
-  }
-};
+// [
+//   { x: 50, y: 5, z: -20 },
+//   { x: 65, y: 5, z: -25 },
+//   {
+//     x: 65,
+//     y: 15,
+//     z: -25
+//   }
+// ]
+const cubes = _.range(0)
+  .map(i => {
+    return { x: _.random(-100, 100), y: _.random(100), z: _.random(-100, 100) };
+  })
+  .map((position, i) => {
+    const cube: Entity = {
+      id: `cube-${i}`,
+      mesh: { meshType: MeshTypes.CUBE },
+      body: {
+        velocity: { x: 0, y: 0, z: 0 },
+        transform: {
+          position: position,
+          rotation: { x: 0, y: 0, z: 0 },
+          scale: { x: 5, y: 5, z: 5 }
+        }
+      },
+      collider: {
+        position: position,
+        scale: { x: 5, y: 5, z: 5 },
+        isTrigger: false,
+        isStatic: true,
+        debug__activeCollision: false,
+        debug__drawOutline: true
+      }
+    };
+
+    return cube;
+  });
 
 const trigger: Entity = {
   id: "trigger",
@@ -99,12 +118,15 @@ const trigger: Entity = {
     position: { x: -50, y: 5, z: -30 },
     scale: { x: 2, y: 2, z: 2 },
     isTrigger: true,
+    isStatic: true,
     debug__activeCollision: false,
     debug__drawOutline: true
   }
 };
 
-state.push(cube);
+cubes.forEach(cube => {
+  state.push(cube);
+});
 state.push(ground);
 state.push(dummy);
 state.push(trigger);
