@@ -64,12 +64,50 @@ function intersect(
 // global array to store active collisions
 let activeCollisions = [];
 
+// exploit the fact that collider pairs are unlikely to change from frame to frame
+// so cache the pairs for a set of colliders.
+let cachedColliderPairs = {};
+function colliderPairs(entities: Entity[]): [string, string][] {
+  // make a key. assumes key making is significantly faster than computing (entities.length Choose 2) each frame.
+  const ids = entities.map(e => e.id);
+  const key = ids.join("-");
+
+  const pairs = cachedColliderPairs[key];
+  if (pairs) return pairs;
+
+  console.log("____CACHE MISS____");
+  const newPairs: [string, string][] = combinatorics
+    .bigCombination(ids, 2)
+    .toArray()
+    .filter((pair: [string, string]) => {
+      // do not consider pairs where both colliders are static
+      const e1 = _.find(entities, entity => entity.id === pair[0]);
+      const e2 = _.find(entities, entity => entity.id === pair[1]);
+      return e1.collider.isStatic && e2.collider.isStatic ? false : true;
+    });
+
+  // save to cache
+  cachedColliderPairs[key] = newPairs;
+
+  return newPairs;
+}
+
 export function collisionSystem(entities: Entity[]): Message[] {
   if (entities.length < 2) return [];
 
-  const pairs: [Entity, Entity][] = combinatorics
-    .combination(entities, 2)
-    .toArray();
+  const pairs: [string, string][] = colliderPairs(entities);
+
+  // const pairs: [Entity, Entity][] = combinatorics
+  //   .bigCombination(entities, 2)
+  //   .toArray()
+  //   .filter((pair: [Entity, Entity]) =>
+  //     // do not consider pairs where both colliders are static
+  //     pair[0].collider.isStatic && pair[1].collider.isStatic ? false : true
+  //   );
+
+  // console.log(pairs.length);
+  // pairs.forEach(pair => console.log(pair[0].id, pair[1].id));
+  // console.log("___________");
 
   const collisionMessage = (
     pair: [Entity, Entity]
@@ -123,7 +161,13 @@ export function collisionSystem(entities: Entity[]): Message[] {
     return null;
   };
 
-  const collisions = pairs.map(pair => collisionMessage(pair)).filter(x => x);
-
+  const collisions = pairs
+    .map(pair =>
+      collisionMessage([
+        _.find(entities, e => e.id === pair[0]),
+        _.find(entities, e => e.id === pair[1])
+      ])
+    )
+    .filter(x => x);
   return collisions;
 }
