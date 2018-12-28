@@ -10,7 +10,8 @@ import {
   CollisionStartMessage,
   CollisionActiveMessage,
   Collider,
-  TriggerActiveMessage
+  TriggerActiveMessage,
+  InputRequest
 } from "./interfaces";
 import { FRAME } from "./clock";
 import { degreeToRadian } from "./math";
@@ -36,14 +37,24 @@ function playerMovement(
 ): [Entity, Message[]] {
   // TODO: create message on flap
 
+  // check to see if there is input for this entity!
+  const inputForEntity: InputMessage = messages.find(
+    (message: InputMessage) =>
+      message.subject === MessageType.INPUT && message.clientId === entity.id
+  ) as InputMessage;
+  // if there is input for this entity, proceed.
+  // else, return entity
+  // exercise in good component design
+  // i.e. this is less 'player movement' system, and more 'controllable' system
+
+  if (!inputForEntity) {
+    return [entity, []];
+  }
+
   // save position
   const lastPosition = { ...entity.body.transform.position };
 
-  const inputMessage = _.first(
-    getMessages(messages, MessageType.INPUT)
-  ) as InputMessage;
-
-  const input = inputMessage.input;
+  const input = inputForEntity.input;
 
   const activeCollisionX = _.find(
     messages,
@@ -291,37 +302,34 @@ function system(
   return [newState, newMessages];
 }
 
-export function step(
-  state: State,
-  inputMessages: Message[],
-  clientId: string
-): State {
-  const messages = [
-    ...inputMessages,
-    ...collisionSystem(state.filter(entity => entity.collider !== undefined))
-  ];
-
-  const triggerMessages = messages.filter(
-    m => m.subject === MessageType.TRIGGER_ACTIVE
+export function step(state: State, inputRequests: InputRequest[]): State {
+  // lift collision
+  const collisions = collisionSystem(
+    state.filter(entity => entity.collider !== undefined)
   );
-  const gameWonMessage = _.find(
-    triggerMessages,
-    (message: TriggerActiveMessage) => message.triggerId === "trigger"
-  ) as TriggerActiveMessage;
 
-  if (gameWonMessage) {
-    console.log(`${gameWonMessage.entityId} won the game!`);
-  }
+  const inputMessages: Message[] = inputRequests.map(ir => {
+    return {
+      subject: MessageType.INPUT,
+      input: ir.input,
+      clientId: ir.clientId
+    };
+  });
 
+  const messages = [...collisions, ...inputMessages];
+  return getNextState(state, messages);
+}
+
+function getNextState(state: State, messages: Message[]) {
   // TODO: need a better way to authenticate controls
   const logic: Logic = [
-    [(e: Entity) => e.body !== undefined && e.id === clientId, gravityField],
+    [(e: Entity) => e.body !== undefined, gravityField],
     [(e: Entity) => e.collider !== undefined, updateColliderDebugInfo],
     [
       (e: Entity) => e.collider !== undefined && e.body !== undefined,
       collisionStart
     ],
-    [(e: Entity) => e.id === clientId, playerMovement],
+    [(e: Entity) => e.type === "PLAYER", playerMovement],
     [
       (e: Entity) => e.collider !== undefined && e.body !== undefined,
       updateColliderTransform

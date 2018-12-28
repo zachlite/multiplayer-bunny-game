@@ -17,7 +17,6 @@ import { createMessage } from "./common/message";
 const FRAME_BUFFER = 4; // wait 4 frames before processing input
 
 const io = socketio(5555);
-
 io.on("connection", socket => {
   initClient(socket);
   socket.on("player_input", onReceiveInput);
@@ -82,7 +81,7 @@ const dummy: Entity = {
 //     z: -25
 //   }
 // ]
-const cubes = _.range(0)
+const cubes = _.range(100)
   .map(i => {
     return { x: _.random(-100, 100), y: _.random(100), z: _.random(-100, 100) };
   })
@@ -169,11 +168,11 @@ function updateClients({ state, acks }) {
 function tick() {
   // process each client's input from the buffer
 
-  clientBuffer.forEach(request => {
-    const inputMessages = [
-      createMessage(MessageType.INPUT, { input: request.input })
-    ];
-    state = step(state, inputMessages, request.clientId);
+  const connectedClients = Object.keys(clientIds).length;
+  const inputRequestsChunks = _.chunk(clientBuffer, connectedClients);
+
+  inputRequestsChunks.forEach(inputRequests => {
+    state = step(state, inputRequests);
   });
 
   // need ack frames for each client

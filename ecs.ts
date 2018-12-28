@@ -21,7 +21,11 @@ const socket = io(`http://${window.location.hostname}:5555`);
 
 let clientId;
 let frame = 0;
-let savedFrames: { state: State; inputMessages: any[]; frame: number }[] = [];
+let savedFrames: {
+  state: State;
+  inputRequest: InputRequest;
+  frame: number;
+}[] = [];
 let state: State = [];
 
 socket.on("welcome", data => {
@@ -46,7 +50,7 @@ function receiveUpdate(serverState: State, acks) {
 
   // replay all frames since the ack.
   framesSinceAck.forEach(sf => {
-    state = step(state, sf.inputMessages, clientId);
+    state = step(state, [sf.inputRequest]);
   });
 
   // throw away ack frame.
@@ -102,12 +106,10 @@ window.onload = () => {
 
   function gameLoop() {
     const currentInput = { ...input };
-    const inputMessages = [
-      createMessage(MessageType.INPUT, { input: currentInput })
-    ];
-    send({ clientId, frame, input: currentInput });
-    state = step(state, inputMessages, clientId);
-    savedFrames.push({ state, inputMessages, frame });
+    const inputRequest = { clientId, frame, input: currentInput };
+    send(inputRequest);
+    state = step(state, [inputRequest]);
+    savedFrames.push({ state, inputRequest, frame });
     frame += 1;
 
     throttledInputs.forEach(ti => {
