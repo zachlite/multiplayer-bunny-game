@@ -321,10 +321,12 @@ export function step(state: State, inputRequests: InputRequest[]): State {
 }
 
 function getNextState(state: State, messages: Message[]) {
-  // TODO: need a better way to authenticate controls
   const logic: Logic = [
-    [(e: Entity) => e.body !== undefined, gravityField],
-    [(e: Entity) => e.collider !== undefined, updateColliderDebugInfo],
+    [(e: Entity) => e.body !== undefined && e.body.useGravity, gravityField],
+    [
+      (e: Entity) => e.collider !== undefined && e.collider.debug__drawOutline,
+      updateColliderDebugInfo
+    ],
     [
       (e: Entity) => e.collider !== undefined && e.body !== undefined,
       collisionStart

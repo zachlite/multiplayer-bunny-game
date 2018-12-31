@@ -1,4 +1,4 @@
-const combinatorics = require("js-combinatorics");
+const boxIntersect = require("box-intersect");
 import * as _ from "lodash";
 import {
   Vec3,
@@ -26,148 +26,122 @@ function axisOfCollision({ aX, aY, aZ }, { bX, bY, bZ }): "x" | "y" | "z" {
   return axis as "x" | "y" | "z";
 }
 
-function intersect(
-  colliderA: Collider,
-  colliderB: Collider
-):
-  | { collision: true; axisOfCollision: "x" | "y" | "z" }
-  | { collision: false } {
-  const minMax = (collider: Collider, axis: "x" | "y" | "z") => {
-    return {
-      min: collider.position[axis] - collider.scale[axis],
-      max: collider.position[axis] + collider.scale[axis]
-    };
+const minMax = (collider: Collider, axis: "x" | "y" | "z") => {
+  return {
+    min: collider.position[axis] - collider.scale[axis],
+    max: collider.position[axis] + collider.scale[axis]
   };
+};
 
-  const aX = minMax(colliderA, "x");
-  const aY = minMax(colliderA, "y");
-  const aZ = minMax(colliderA, "z");
-
-  const bX = minMax(colliderB, "x");
-  const bY = minMax(colliderB, "y");
-  const bZ = minMax(colliderB, "z");
-
-  const collided =
-    aX.min <= bX.max &&
-    aX.max >= bX.min &&
-    (aY.min <= bY.max && aY.max >= bY.min) &&
-    (aZ.min <= bZ.max && aZ.max >= bZ.min);
-
-  return collided
-    ? {
-        collision: true,
-        axisOfCollision: axisOfCollision({ aX, aY, aZ }, { bX, bY, bZ })
-      }
-    : { collision: false };
-}
+const colliderMinMax = (collider: Collider) => {
+  return {
+    x: minMax(collider, "x"),
+    y: minMax(collider, "y"),
+    z: minMax(collider, "z")
+  };
+};
 
 // global array to store active collisions
-let activeCollisions = [];
+let activeCollisions: string[] = [];
 
-// exploit the fact that collider pairs are unlikely to change from frame to frame
-// so cache the pairs for a set of colliders.
-let cachedColliderPairs = {};
-function colliderPairs(entities: Entity[]): [string, string][] {
-  // make a key. assumes key making is significantly faster than computing (entities.length Choose 2) each frame.
-  const ids = entities.map(e => e.id);
-  const key = ids.join("-");
+const pairIdentifier = (id1: string, id2: string) =>
+  _.orderBy([id1, id2]).join("-");
 
-  const pairs = cachedColliderPairs[key];
-  if (pairs) return pairs;
+const getCollisionMessage = (
+  pair: [Entity, Entity]
+): CollisionActiveMessage | CollisionStartMessage | TriggerActiveMessage => {
+  // this is only invoked for pairs we know are colliding.
 
-  console.log("____CACHE MISS____");
-  const newPairs: [string, string][] = combinatorics
-    .bigCombination(ids, 2)
-    .toArray()
-    .filter((pair: [string, string]) => {
-      // do not consider pairs where both colliders are static
-      const e1 = _.find(entities, entity => entity.id === pair[0]);
-      const e2 = _.find(entities, entity => entity.id === pair[1]);
-      return e1.collider.isStatic && e2.collider.isStatic ? false : true;
-    });
+  if (pair[0].collider.isTrigger || pair[1].collider.isTrigger) {
+    return {
+      subject: MessageType.TRIGGER_ACTIVE,
+      triggerId: pair[0].collider.isTrigger ? pair[0].id : pair[1].id,
+      entityId: pair[0].collider.isTrigger ? pair[1].id : pair[0].id
+    };
+  }
 
-  // save to cache
-  cachedColliderPairs[key] = newPairs;
+  const pairId = pairIdentifier(pair[0].id, pair[1].id);
+  const pairAlreadyColliding = _.includes(activeCollisions, pairId);
 
-  return newPairs;
-}
+  const a = colliderMinMax(pair[0].collider);
+  const b = colliderMinMax(pair[1].collider);
+
+  const axis = axisOfCollision(
+    { aX: a.x, aY: a.y, aZ: a.z },
+    { bX: b.x, bY: b.y, bZ: b.z }
+  );
+
+  if (pairAlreadyColliding) {
+    return {
+      subject: MessageType.COLLISION_ACTIVE,
+      entityIds: [pair[0].id, pair[1].id],
+      axisOfCollision: axis
+    };
+  } else {
+    activeCollisions.push(pairId);
+    return {
+      subject: MessageType.COLLISION_START,
+      axisOfCollision: axis,
+      entityIds: [pair[0].id, pair[1].id]
+    };
+  }
+};
 
 export function collisionSystem(entities: Entity[]): Message[] {
   if (entities.length < 2) return [];
 
-  const pairs: [string, string][] = colliderPairs(entities);
+  // feed list of minX, MinY, MaxX, MaxY
+  // get back colliding pairs
+  // get axis of collision for each colliding pair
+  // create messages
+  // return messages
 
-  // const pairs: [Entity, Entity][] = combinatorics
-  //   .bigCombination(entities, 2)
-  //   .toArray()
-  //   .filter((pair: [Entity, Entity]) =>
-  //     // do not consider pairs where both colliders are static
-  //     pair[0].collider.isStatic && pair[1].collider.isStatic ? false : true
-  //   );
-
-  // console.log(pairs.length);
-  // pairs.forEach(pair => console.log(pair[0].id, pair[1].id));
-  // console.log("___________");
-
-  const collisionMessage = (
-    pair: [Entity, Entity]
-  ):
-    | CollisionActiveMessage
-    | CollisionStartMessage
-    | CollisionEndMessage
-    | TriggerActiveMessage
-    | null => {
-    const collisionCheck = intersect(pair[0].collider, pair[1].collider);
-
-    if (
-      collisionCheck.collision &&
-      (pair[0].collider.isTrigger || pair[1].collider.isTrigger)
-    ) {
-      return {
-        subject: MessageType.TRIGGER_ACTIVE,
-        triggerId: pair[0].collider.isTrigger ? pair[0].id : pair[1].id,
-        entityId: pair[0].collider.isTrigger ? pair[1].id : pair[0].id
-      };
-    }
-
-    const pairIdentifier = _.orderBy([pair[0].id, pair[1].id]).join("-");
-    const pairAlreadyColliding = _.includes(activeCollisions, pairIdentifier);
-
-    if (collisionCheck.collision && pairAlreadyColliding) {
-      return {
-        subject: MessageType.COLLISION_ACTIVE,
-        entityIds: [pair[0].id, pair[1].id],
-        axisOfCollision: collisionCheck.axisOfCollision
-      };
-    }
-
-    if (collisionCheck.collision && !pairAlreadyColliding) {
-      activeCollisions.push(pairIdentifier);
-      return {
-        subject: MessageType.COLLISION_START,
-        axisOfCollision: collisionCheck.axisOfCollision,
-        entityIds: [pair[0].id, pair[1].id]
-      };
-    }
-
-    if (!collisionCheck.collision && pairAlreadyColliding) {
-      activeCollisions = activeCollisions.filter(ac => ac !== pairIdentifier);
-      return {
-        subject: MessageType.COLLISION_END,
-        entityIds: [pair[0].id, pair[1].id]
-      };
-    }
-
-    return null;
+  const bounds = (collider: Collider) => {
+    const a = colliderMinMax(collider);
+    return [a.x.min, a.y.min, a.z.min, a.x.max, a.y.max, a.z.max];
   };
 
-  const collisions = pairs
-    .map(pair =>
-      collisionMessage([
-        _.find(entities, e => e.id === pair[0]),
-        _.find(entities, e => e.id === pair[1])
-      ])
-    )
+  const collisions: number[][] = boxIntersect(
+    entities.map(e => bounds(e.collider))
+  );
+
+  const collisionPairs = collisions.map(collision => {
+    const e1 = entities[collision[0]];
+    const e2 = entities[collision[1]];
+    return [e1, e2] as [Entity, Entity];
+  });
+
+  const collisionMessages = collisionPairs
+    .map(pair => getCollisionMessage(pair))
     .filter(x => x);
-  return collisions;
+
+  return [...collisionMessages, ...collisionEndMessages(collisionPairs)];
+}
+
+function collisionEndMessages(
+  pairsColliding: [Entity, Entity][]
+): CollisionEndMessage[] {
+  // go through all active collisions, check if the pair is in pairs colliding.
+
+  const pairIds = pairsColliding.map(pair =>
+    pairIdentifier(pair[0].id, pair[1].id)
+  );
+
+  const collisionEnds = activeCollisions
+    .map(active => {
+      const over = !_.includes(pairIds, active);
+
+      if (over) {
+        activeCollisions = activeCollisions.filter(ac => ac !== active);
+        return {
+          subject: MessageType.COLLISION_END,
+          entityIds: active.split("-")
+        };
+      } else {
+        return null;
+      }
+    })
+    .filter(x => x);
+
+  return collisionEnds;
 }

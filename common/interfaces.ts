@@ -30,6 +30,7 @@ interface Mesh {
 
 interface PhysicalBody {
   // mass: number; // kg
+  useGravity: boolean;
   velocity: Vec3;
   transform: Transform;
 }

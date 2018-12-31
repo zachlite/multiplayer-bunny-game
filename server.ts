@@ -4,16 +4,9 @@ import * as express from "express";
 import * as path from "path";
 
 import { FRAME, LATENCY } from "./common/clock";
-import {
-  InputRequest,
-  State,
-  MeshTypes,
-  Entity,
-  MessageType
-} from "./common/interfaces";
+import { InputRequest, State, MeshTypes, Entity } from "./common/interfaces";
 import { step } from "./common/state";
 import { initPlayer } from "./common/player";
-import { createMessage } from "./common/message";
 const FRAME_BUFFER = 4; // wait 4 frames before processing input
 
 const io = socketio(5555);
@@ -42,6 +35,7 @@ const ground: Entity = {
   id: "ground",
   mesh: { meshType: MeshTypes.GROUND },
   body: {
+    useGravity: false,
     velocity: { x: 0, y: 0, z: 0 },
     transform: {
       position: { x: 0, y: 0, z: 0 },
@@ -63,6 +57,7 @@ const dummy: Entity = {
   id: "dummy",
   mesh: { meshType: MeshTypes.TEAPOT },
   body: {
+    useGravity: false,
     velocity: { x: 0, y: 0, z: 0 },
     transform: {
       position: { x: 0, y: 10, z: -30 },
@@ -90,6 +85,7 @@ const cubes = _.range(100)
       id: `cube-${i}`,
       mesh: { meshType: MeshTypes.CUBE },
       body: {
+        useGravity: false,
         velocity: { x: 0, y: 0, z: 0 },
         transform: {
           position: position,
@@ -103,7 +99,7 @@ const cubes = _.range(100)
         isTrigger: false,
         isStatic: true,
         debug__activeCollision: false,
-        debug__drawOutline: true
+        debug__drawOutline: false
       }
     };
 
@@ -167,7 +163,6 @@ function updateClients({ state, acks }) {
 
 function tick() {
   // process each client's input from the buffer
-
   const connectedClients = Object.keys(clientIds).length;
   const inputRequestsChunks = _.chunk(clientBuffer, connectedClients);
 

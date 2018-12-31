@@ -1,12 +1,10 @@
 import * as _ from "lodash";
-import io from "socket.io-client";
 import regl from "regl";
 
-import { Input, State, InputRequest, MessageType } from "./common/interfaces";
+import { Input, State } from "./common/interfaces";
 import { step } from "./common/state";
-import { FRAME, LATENCY } from "./common/clock";
+import { FRAME } from "./common/clock";
 import { initDrawing } from "./app/draw";
-import { createMessage } from "./common/message";
 
 /**
  * move player using arrow keys,
@@ -17,45 +15,26 @@ import { createMessage } from "./common/message";
 // entity component system where entities are bags of components
 // reduce systems that have similarity
 
-const socket = io(`http://${window.location.hostname}:5555`);
+const worker = new Worker("./worker.ts");
 
 let clientId;
 let frame = 0;
-let savedFrames: {
-  state: State;
-  inputRequest: InputRequest;
-  frame: number;
-}[] = [];
 let state: State = [];
 
-socket.on("welcome", data => {
-  clientId = data.clientId;
-  console.log(clientId);
-});
+worker.onmessage = e => {
+  switch (e.data.type) {
+    case "CLIENT_ID":
+      clientId = e.data.clientId;
+      break;
 
-socket.on("update", ({ state, acks }) => {
-  setTimeout(() => receiveUpdate(state, acks), LATENCY);
-});
+    case "STATE_UPDATE":
+      state = e.data.newState;
+      break;
 
-function send(input: InputRequest) {
-  socket.emit("player_input", input);
-}
-
-function receiveUpdate(serverState: State, acks) {
-  // accept server state as truth.
-  state = serverState;
-  // filter all saved frames sinces the ack
-  const ackFrame: number = acks[clientId];
-  const framesSinceAck = savedFrames.filter(sf => sf.frame > ackFrame);
-
-  // replay all frames since the ack.
-  framesSinceAck.forEach(sf => {
-    state = step(state, [sf.inputRequest]);
-  });
-
-  // throw away ack frame.
-  savedFrames = savedFrames.filter(sf => sf.frame !== ackFrame);
-}
+    default:
+      break;
+  }
+};
 
 window.onload = () => {
   let keysPressed = {};
@@ -107,9 +86,14 @@ window.onload = () => {
   function gameLoop() {
     const currentInput = { ...input };
     const inputRequest = { clientId, frame, input: currentInput };
-    send(inputRequest);
+
     state = step(state, [inputRequest]);
-    savedFrames.push({ state, inputRequest, frame });
+
+    worker.postMessage({
+      type: "SEND_FRAME",
+      payload: { ...inputRequest }
+    });
+
     frame += 1;
 
     throttledInputs.forEach(ti => {

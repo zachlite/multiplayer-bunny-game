@@ -7,13 +7,14 @@ export function initPlayer(id: string, meshType: MeshTypes): Entity {
   const startPosition = {
     x: _.sample(_.range(50)),
     y: 5,
-    z: _.sample(_.range(50))
+    z: -100
   };
   return {
     id,
     type: "PLAYER",
     mesh: { meshType },
     body: {
+      useGravity: true,
       velocity: { x: 0, y: 0, z: 0 },
       transform: {
         position: startPosition,
