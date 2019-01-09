@@ -2,8 +2,8 @@ import io from "socket.io-client";
 import { LATENCY } from "./common/clock";
 
 // send and receive data on a separate thread.
-
-const socket = io("http://localhost:5555");
+const hostname = process.env.WS_HOST || "localhost";
+const socket = io(`http://${hostname}:5555`);
 
 socket.on("welcome", data => {
   postMessage({ type: "CLIENT_ID", clientId: data.clientId });
