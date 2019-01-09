@@ -7,6 +7,7 @@ import { FRAME, LATENCY } from "./common/clock";
 import { InputRequest, State, MeshTypes, Entity } from "./common/interfaces";
 import { step } from "./common/state";
 import { initPlayer } from "./common/player";
+import { initialState } from "./common/initialState";
 const FRAME_BUFFER = 4; // wait 4 frames before processing input
 
 const io = socketio(5555);
@@ -28,103 +29,7 @@ io.on("connection", socket => {
 
 let clientBuffer: InputRequest[] = [];
 
-let state: State = [];
-
-// let's create a ground and render it
-const ground: Entity = {
-  id: "ground",
-  mesh: { meshType: MeshTypes.GROUND },
-  body: {
-    useGravity: false,
-    velocity: { x: 0, y: 0, z: 0 },
-    transform: {
-      position: { x: 0, y: 0, z: 0 },
-      rotation: { x: 0, y: 0, z: 0 },
-      scale: { x: 200, y: 0, z: 200 }
-    }
-  },
-  collider: {
-    position: { x: 0, y: 0, z: 0 },
-    scale: { x: 200, y: 0, z: 200 },
-    isTrigger: false,
-    isStatic: true,
-    debug__activeCollision: false,
-    debug__drawOutline: true
-  }
-};
-
-const dummy: Entity = {
-  id: "dummy",
-  mesh: { meshType: MeshTypes.TEAPOT },
-  body: {
-    useGravity: false,
-    velocity: { x: 0, y: 0, z: 0 },
-    transform: {
-      position: { x: 0, y: 10, z: -30 },
-      rotation: { x: 0, y: 0, z: 0 },
-      scale: { x: 10, y: 10, z: 10 }
-    }
-  }
-};
-
-// [
-//   { x: 50, y: 5, z: -20 },
-//   { x: 65, y: 5, z: -25 },
-//   {
-//     x: 65,
-//     y: 15,
-//     z: -25
-//   }
-// ]
-const cubes = _.range(100)
-  .map(i => {
-    return { x: _.random(-100, 100), y: _.random(100), z: _.random(-100, 100) };
-  })
-  .map((position, i) => {
-    const cube: Entity = {
-      id: `cube-${i}`,
-      mesh: { meshType: MeshTypes.CUBE },
-      body: {
-        useGravity: false,
-        velocity: { x: 0, y: 0, z: 0 },
-        transform: {
-          position: position,
-          rotation: { x: 0, y: 0, z: 0 },
-          scale: { x: 5, y: 5, z: 5 }
-        }
-      },
-      collider: {
-        position: position,
-        scale: { x: 5, y: 5, z: 5 },
-        isTrigger: false,
-        isStatic: true,
-        debug__activeCollision: false,
-        debug__drawOutline: false
-      }
-    };
-
-    return cube;
-  });
-
-const trigger: Entity = {
-  id: "trigger",
-  mesh: { meshType: MeshTypes.TRIGGER },
-  collider: {
-    position: { x: -50, y: 5, z: -30 },
-    scale: { x: 2, y: 2, z: 2 },
-    isTrigger: true,
-    isStatic: true,
-    debug__activeCollision: false,
-    debug__drawOutline: true
-  }
-};
-
-cubes.forEach(cube => {
-  state.push(cube);
-});
-state.push(ground);
-state.push(dummy);
-state.push(trigger);
+let state: State = initialState;
 
 let clientIds: { [socketId: string]: string } = {};
 
@@ -157,10 +62,6 @@ function onReceiveInput(input: InputRequest) {
   }, LATENCY);
 }
 
-function updateClients({ state, acks }) {
-  io.emit("update", { state, acks });
-}
-
 function tick() {
   // process each client's input from the buffer
   const connectedClients = Object.keys(clientIds).length;
@@ -179,7 +80,11 @@ function tick() {
   );
 
   // send state to all clients with ack
-  updateClients({ state, acks });
+  // only send non-cube state
+
+  const withoutCubes = state.filter(e => e.type !== "CUBE");
+
+  io.emit("update", { state: withoutCubes, acks });
 
   // clear the buffer
   clientBuffer = [];

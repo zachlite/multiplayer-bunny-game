@@ -1,10 +1,12 @@
 import * as _ from "lodash";
 import regl from "regl";
 
-import { Input, State } from "./common/interfaces";
+import { Input, State, InputRequest } from "./common/interfaces";
 import { step } from "./common/state";
 import { FRAME } from "./common/clock";
 import { initDrawing } from "./app/draw";
+import { receiveUpdate } from "./app/replayFrames";
+import { initialState } from "./common/initialState";
 
 /**
  * move player using arrow keys,
@@ -19,7 +21,11 @@ const worker = new Worker("./worker.ts");
 
 let clientId;
 let frame = 0;
-let state: State = [];
+let state: State = initialState;
+let savedFrames: {
+  inputRequest: InputRequest;
+  frame: number;
+}[] = [];
 
 worker.onmessage = e => {
   switch (e.data.type) {
@@ -28,7 +34,15 @@ worker.onmessage = e => {
       break;
 
     case "STATE_UPDATE":
-      state = e.data.newState;
+      const stateUpdate = receiveUpdate(
+        state,
+        e.data.state,
+        e.data.acks,
+        clientId,
+        savedFrames
+      );
+      state = stateUpdate[0];
+      savedFrames = stateUpdate[1];
       break;
 
     default:
@@ -88,6 +102,13 @@ window.onload = () => {
     const inputRequest = { clientId, frame, input: currentInput };
 
     state = step(state, [inputRequest]);
+
+    // console.log(state.map(e => e.id));
+
+    savedFrames.push({
+      inputRequest,
+      frame: frame
+    });
 
     worker.postMessage({
       type: "SEND_FRAME",

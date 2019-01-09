@@ -11,7 +11,8 @@ import {
   CollisionActiveMessage,
   Collider,
   TriggerActiveMessage,
-  InputRequest
+  InputRequest,
+  MeshTypes
 } from "./interfaces";
 import { FRAME } from "./clock";
 import { degreeToRadian } from "./math";
@@ -304,6 +305,7 @@ function system(
 
 export function step(state: State, inputRequests: InputRequest[]): State {
   // lift collision
+
   const collisions = collisionSystem(
     state.filter(entity => entity.collider !== undefined)
   );

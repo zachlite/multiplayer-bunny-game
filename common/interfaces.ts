@@ -46,7 +46,7 @@ export interface Collider {
 
 export interface Entity {
   id: string;
-  type?: "PLAYER";
+  type?: "PLAYER" | "CUBE";
   mesh?: Mesh;
   body?: PhysicalBody;
   collider?: Collider;
