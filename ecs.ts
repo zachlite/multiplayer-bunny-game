@@ -133,6 +133,12 @@ window.onload = () => {
       depth: 1
     });
 
+    state
+      .filter(e => e.type === "PLAYER")
+      .forEach(p => {
+        if (p.score) console.log(p.score);
+      });
+
     draw(state, clientId);
   });
 };

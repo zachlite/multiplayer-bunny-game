@@ -44,12 +44,19 @@ export interface Collider {
   debug__drawOutline: boolean;
 }
 
+export interface Coin {
+  timeSinceDeactivation: number;
+}
+
 export interface Entity {
   id: string;
-  type?: "PLAYER" | "CUBE";
+  isActive: boolean;
+  type?: "PLAYER" | "CUBE" | "COIN";
   mesh?: Mesh;
   body?: PhysicalBody;
   collider?: Collider;
+  score?: number;
+  coin?: Coin;
 }
 
 export enum MeshTypes {

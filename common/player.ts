@@ -12,6 +12,7 @@ export function initPlayer(id: string, meshType: MeshTypes): Entity {
   return {
     id,
     type: "PLAYER",
+    isActive: true,
     mesh: { meshType },
     body: {
       useGravity: true,
@@ -29,7 +30,8 @@ export function initPlayer(id: string, meshType: MeshTypes): Entity {
       isStatic: false,
       debug__activeCollision: false,
       debug__drawOutline: false
-    }
+    },
+    score: 0
   };
 }
 

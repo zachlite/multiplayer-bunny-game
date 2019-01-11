@@ -1,6 +1,7 @@
 import * as _ from "lodash";
 import { Entity, MeshTypes, State } from "./interfaces";
 import random from "./random";
+import { makeCoin } from "./coin";
 
 const cubes = _.range(50)
   .map(i => {
@@ -13,6 +14,7 @@ const cubes = _.range(50)
   .map((position, i) => {
     const cube: Entity = {
       id: `cube-${i}`,
+      isActive: true,
       type: "CUBE",
       mesh: { meshType: MeshTypes.CUBE },
       body: {
@@ -39,6 +41,7 @@ const cubes = _.range(50)
 
 const ground: Entity = {
   id: "ground",
+  isActive: true,
   mesh: { meshType: MeshTypes.GROUND },
   body: {
     useGravity: false,
@@ -61,6 +64,7 @@ const ground: Entity = {
 
 const dummy: Entity = {
   id: "dummy",
+  isActive: true,
   mesh: { meshType: MeshTypes.TEAPOT },
   body: {
     useGravity: false,
@@ -73,17 +77,6 @@ const dummy: Entity = {
   }
 };
 
-const trigger: Entity = {
-  id: "trigger",
-  mesh: { meshType: MeshTypes.TRIGGER },
-  collider: {
-    position: { x: -50, y: 5, z: -30 },
-    scale: { x: 2, y: 2, z: 2 },
-    isTrigger: true,
-    isStatic: true,
-    debug__activeCollision: false,
-    debug__drawOutline: true
-  }
-};
+const coins = cubes.map(makeCoin);
 
-export const initialState: State = [...cubes, ground, dummy, trigger];
+export const initialState: State = [...cubes, ground, dummy, ...coins];

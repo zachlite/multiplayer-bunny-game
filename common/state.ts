@@ -281,6 +281,67 @@ function updateColliderDebugInfo(
   return [updatedEntity, []];
 }
 
+function scoreUpdater(
+  entity: Entity,
+  messages: Message[]
+): [Entity, Message[]] {
+  // assume the only triggers are coins.
+  const touchedCoin = messages.find(
+    (m: TriggerActiveMessage) =>
+      m.subject === MessageType.TRIGGER_ACTIVE && m.entityId === entity.id
+  )
+    ? true
+    : false;
+
+  const updatedEntity = touchedCoin
+    ? { ...entity, score: entity.score + 1 }
+    : entity;
+
+  return [updatedEntity, []];
+}
+
+function deactivateCoin(
+  entity: Entity,
+  messages: Message[]
+): [Entity, Message[]] {
+  // assume the only triggers are coins.
+  const coinTouched = messages.find(
+    (m: TriggerActiveMessage) =>
+      m.subject === MessageType.TRIGGER_ACTIVE && m.triggerId === entity.id
+  )
+    ? true
+    : false;
+
+  const updatedEntity = coinTouched
+    ? { ...entity, isActive: false, coin: { timeSinceDeactivation: 0 } }
+    : entity;
+
+  return [updatedEntity, []];
+}
+
+function reactivateCoin(
+  entity: Entity,
+  messages: Message[]
+): [Entity, Message[]] {
+  // if a sufficient amount of time has passed since the coin was deactivated, reactivate.
+
+  const updatedEntity =
+    !entity.isActive && entity.coin.timeSinceDeactivation > 625
+      ? {
+          ...entity,
+          isActive: true
+        }
+      : {
+          ...entity,
+          coin: {
+            ...entity.coin,
+            timeSinceDeactivation: entity.coin.timeSinceDeactivation + 1
+          }
+        };
+
+  return [updatedEntity, []];
+}
+
 function system(
   state: State,
   messages: Message[],
@@ -307,7 +368,7 @@ export function step(state: State, inputRequests: InputRequest[]): State {
   // lift collision
 
   const collisions = collisionSystem(
-    state.filter(entity => entity.collider !== undefined)
+    state.filter(entity => entity.collider !== undefined && entity.isActive)
   );
 
   const inputMessages: Message[] = inputRequests.map(ir => {
@@ -334,11 +395,21 @@ function getNextState(state: State, messages: Message[]) {
       collisionStart
     ],
     [(e: Entity) => e.type === "PLAYER", playerMovement],
+    [(e: Entity) => e.score !== undefined, scoreUpdater],
+    [(e: Entity) => e.type === "COIN", deactivateCoin],
+    [(e: Entity) => e.type === "COIN", reactivateCoin],
     [
       (e: Entity) => e.collider !== undefined && e.body !== undefined,
       updateColliderTransform
     ]
   ];
+
+  // seed initial state with coins. done
+  // if there's a trigger active message between a player and a coin,
+  // increase the player's score by 1
+  // remove the coin from state
+  // make a new coin on top of an available cube.
+  //
 
   const nextState = logic.reduce(
     (acc, curr) => {
