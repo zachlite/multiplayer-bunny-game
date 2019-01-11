@@ -28,7 +28,7 @@ export function initPlayer(id: string, meshType: MeshTypes): Entity {
       isTrigger: false,
       isStatic: false,
       debug__activeCollision: false,
-      debug__drawOutline: true
+      debug__drawOutline: false
     }
   };
 }

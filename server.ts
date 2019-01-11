@@ -82,9 +82,7 @@ function tick() {
   // send state to all clients with ack
   // only send non-cube state
 
-  const withoutCubes = state.filter(e => e.type !== "CUBE");
-
-  io.emit("update", { state: withoutCubes, acks });
+  io.emit("update", { players: state.filter(e => e.type === "PLAYER"), acks });
 
   // clear the buffer
   clientBuffer = [];

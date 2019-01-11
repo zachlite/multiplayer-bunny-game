@@ -36,7 +36,7 @@ worker.onmessage = e => {
     case "STATE_UPDATE":
       const stateUpdate = receiveUpdate(
         state,
-        e.data.state,
+        e.data.players,
         e.data.acks,
         clientId,
         savedFrames
@@ -102,8 +102,6 @@ window.onload = () => {
     const inputRequest = { clientId, frame, input: currentInput };
 
     state = step(state, [inputRequest]);
-
-    // console.log(state.map(e => e.id));
 
     savedFrames.push({
       inputRequest,

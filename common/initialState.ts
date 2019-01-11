@@ -2,7 +2,7 @@ import * as _ from "lodash";
 import { Entity, MeshTypes, State } from "./interfaces";
 import random from "./random";
 
-const cubes = _.range(100)
+const cubes = _.range(50)
   .map(i => {
     return {
       x: random(-100, 100),
@@ -86,4 +86,4 @@ const trigger: Entity = {
   }
 };
 
-export const initialState: State = [...cubes, ground];
+export const initialState: State = [...cubes, ground, dummy, trigger];

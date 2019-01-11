@@ -88,8 +88,8 @@ export const initDrawing = (r: regl.Regl) => {
       shaders: cubeShader,
       textureData: {
         texture: r.texture([
-          [[255, 0, 255], [0, 0, 0, 0]],
-          [[0, 0, 0, 0], [255, 0, 255]]
+          [[255, 0, 255], [0, 255, 255, 0]],
+          [[0, 255, 255, 0], [255, 0, 255]]
         ]),
         coordinates: cube.textureCoordinates
       }
