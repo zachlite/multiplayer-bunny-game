@@ -7,6 +7,7 @@ import { FRAME } from "./common/clock";
 import { initDrawing } from "./app/draw";
 import { receiveUpdate } from "./app/replayFrames";
 import { initialState } from "./common/initialState";
+import { getCurrentScene } from "./common/scene";
 
 /**
  * move player using arrow keys,
@@ -98,26 +99,43 @@ window.onload = () => {
   const canvas = document.getElementById("canvas");
 
   function gameLoop() {
-    const currentInput = { ...input };
-    const inputRequest = { clientId, frame, input: currentInput };
+    switch (getCurrentScene(state)) {
+      case "GAME":
+        {
+          const currentInput = { ...input };
+          const inputRequest = { clientId, frame, input: currentInput };
 
-    state = step(state, [inputRequest]);
+          state = step(state, [inputRequest]);
 
-    savedFrames.push({
-      inputRequest,
-      frame: frame
-    });
+          savedFrames.push({
+            inputRequest,
+            frame: frame
+          });
 
-    worker.postMessage({
-      type: "SEND_FRAME",
-      payload: { ...inputRequest }
-    });
+          worker.postMessage({
+            type: "SEND_FRAME",
+            payload: { ...inputRequest }
+          });
 
-    frame += 1;
+          frame += 1;
 
-    throttledInputs.forEach(ti => {
-      input[ti] = input[ti] ? false : input[ti];
-    });
+          throttledInputs.forEach(ti => {
+            input[ti] = input[ti] ? false : input[ti];
+          });
+        }
+        break;
+
+      case "GAME_OVER":
+        {
+          console.log(
+            "any state that needs to be managed in the game over scene happens here"
+          );
+
+          // when space is pressed, transition back to somewhere
+        }
+
+        break;
+    }
   }
 
   (function initGameClock(fn) {
@@ -133,6 +151,16 @@ window.onload = () => {
       depth: 1
     });
 
-    draw(state, clientId);
+    const currentScene = getCurrentScene(state);
+
+    switch (currentScene) {
+      case "GAME":
+        draw.drawGame(state, clientId);
+        break;
+
+      case "GAME_OVER":
+        draw.drawGameOver(state, clientId);
+        break;
+    }
   });
 };

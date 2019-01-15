@@ -121,14 +121,13 @@ export const initDrawing = (r: regl.Regl) => {
   };
 
   const projectionMatrix = getProjectionMatrix(1080, 720);
-
   const textMeshes = getTextMeshes(r);
   const textCamera = {
     position: { x: 0, y: 0, z: -100 },
     rotation: { x: 0, y: 0, z: 0 }
   };
 
-  function drawText(text: string, transform, camera, projection, color) {
+  function drawText(text: string, transform, letterSpacing, color) {
     text.split("").forEach((char, i) => {
       textMeshes[char].draw({
         modelViewMatrix: getModelViewMatrix(
@@ -136,18 +135,18 @@ export const initDrawing = (r: regl.Regl) => {
             ...transform,
             position: {
               ...transform.position,
-              x: transform.position.x + 1.2 * i
+              x: transform.position.x + letterSpacing * i
             }
           },
-          camera
+          textCamera
         ),
-        projectionMatrix: projection,
+        projectionMatrix,
         color
       });
     });
   }
 
-  function drawScores(players: Entity[], clientId: string) {
+  function drawScores(players: Entity[]) {
     _.orderBy(players, "score", "desc").forEach((player, i) => {
       const scale = 2;
 
@@ -160,65 +159,100 @@ export const initDrawing = (r: regl.Regl) => {
       drawText(
         `player-${player.id}: ${player.score}`,
         textTransform,
-        textCamera,
-        projectionMatrix,
+        1.2,
         player.color
       );
     });
   }
 
-  return (state: State, clientId: string) => {
-    // create camera for player
-    const player: Entity | undefined = _.first(
-      state.filter(entity => entity.id === clientId)
-    );
+  return {
+    drawGame: (state: State, clientId: string) => {
+      const player: Entity | undefined = _.first(
+        state.filter(entity => entity.id === clientId)
+      );
 
-    // get camera
-    const camera = getCamera(player ? player.body.transform : undefined);
+      // get camera
+      const camera = getCamera(player ? player.body.transform : undefined);
 
-    state.forEach(entity => {
-      if (entity.body !== undefined && entity.isActive) {
-        const modelViewMatrix = getModelViewMatrix(
-          entity.body.transform,
-          camera
-        );
+      state.forEach(entity => {
+        if (entity.body !== undefined && entity.isActive) {
+          const modelViewMatrix = getModelViewMatrix(
+            entity.body.transform,
+            camera
+          );
 
-        meshes[entity.mesh.meshType].draw({
-          modelViewMatrix,
-          projectionMatrix
-        });
-      }
+          meshes[entity.mesh.meshType].draw({
+            modelViewMatrix,
+            projectionMatrix
+          });
+        }
 
-      if (entity.collider !== undefined && entity.collider.debug__drawOutline) {
-        const boundingBoxTransform: Transform = {
-          position: entity.collider.position,
-          scale: entity.collider.scale,
-          rotation: { x: 0, y: 0, z: 0 }
-        };
+        if (
+          entity.collider !== undefined &&
+          entity.collider.debug__drawOutline
+        ) {
+          const boundingBoxTransform: Transform = {
+            position: entity.collider.position,
+            scale: entity.collider.scale,
+            rotation: { x: 0, y: 0, z: 0 }
+          };
 
-        meshes[MeshTypes.BOUNDING_BOX].draw({
-          modelViewMatrix: getModelViewMatrix(boundingBoxTransform, camera),
-          projectionMatrix,
-          color: entity.collider.debug__activeCollision ? [1, 0, 0] : [1, 1, 1]
-        });
-      }
-    });
+          meshes[MeshTypes.BOUNDING_BOX].draw({
+            modelViewMatrix: getModelViewMatrix(boundingBoxTransform, camera),
+            projectionMatrix,
+            color: entity.collider.debug__activeCollision
+              ? [1, 0, 0]
+              : [1, 1, 1]
+          });
+        }
+      });
 
-    // draw all connected player scores
-    drawScores(state.filter(e => e.type === "PLAYER"), clientId);
+      // draw all connected player scores
+      drawScores(state.filter(e => e.type === "PLAYER"));
 
-    // draw time remaining
-    const timer = state.find(e => e.type === "TIMER");
-    drawText(
-      (timer.timer.timeRemaining / 1000).toFixed(0).toString(),
-      {
-        position: { x: 0, y: 35, z: 0 },
-        rotation: { x: 180, y: 0, z: 0 },
-        scale: { x: 3, y: 3, z: 3 }
-      },
-      textCamera,
-      projectionMatrix,
-      [1, 1, 1]
-    );
+      // draw time remaining
+      const timer = state.find(e => e.type === "TIMER");
+      drawText(
+        (timer.timer.timeRemaining / 1000).toFixed(0).toString(),
+        {
+          position: { x: 0, y: 35, z: 0 },
+          rotation: { x: 180, y: 0, z: 0 },
+          scale: { x: 3, y: 3, z: 3 }
+        },
+        1.2,
+        [1, 1, 1]
+      );
+    },
+    drawGameOver: (state: State, clientId: string) => {
+      const winner = _.orderBy(
+        state.filter(e => e.type === "PLAYER"),
+        "score",
+        "desc"
+      )[0];
+
+      const gameOverMessage = winner.id === clientId ? "victory!" : "defeated!";
+
+      drawText(
+        `${gameOverMessage}`,
+        {
+          position: { x: -10, y: 0, z: 0 },
+          rotation: { x: 180, y: 0, z: 0 },
+          scale: { x: 4, y: 4, z: 4 }
+        },
+        2.5,
+        [1, 1, 1]
+      );
+
+      drawText(
+        "press space to play again",
+        {
+          position: { x: -15, y: -10, z: 0 },
+          rotation: { x: 180, y: 0, z: 0 },
+          scale: { x: 2, y: 2, z: 2 }
+        },
+        1.2,
+        [1, 1, 1]
+      );
+    }
   };
 };

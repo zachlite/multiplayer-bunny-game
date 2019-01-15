@@ -41,7 +41,7 @@ export function drawExample(r) {
 }
 
 export function getTextMeshes(r) {
-  const chars = "abcdefghijlkmnopqrstuvwxyz0123456789-: ";
+  const chars = "abcdefghijlkmnopqrstuvwxyz0123456789-: !";
 
   const meshes = chars.split("").reduce((acc, curr) => {
     return {

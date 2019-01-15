@@ -3,9 +3,9 @@
     "client:build:watch": "parcel watch index.html",
     "client:build": "parcel build index.html",
     "client:dev": "parcel index.html",
-    "server:build:watch": "tsc -w --lib es6 --outDir ./dist-server server.ts",
+    "server:build:watch": "tsc -w --lib es2016 --outDir ./dist-server server.ts",
     "server:start:watch": "nodemon ./dist-server/server.js",
-    "server:build": "tsc --outDir ./dist-server --lib es6 server.ts",
+    "server:build": "tsc --outDir ./dist-server --lib es2016 server.ts",
     "server:start": "node ./dist-server/server.js",
     "docker:build": "docker build . -t gameserver:latest",
     "docker:run": "docker run -it -p 8000:8000 -p 5555:5555 -e NODE_ENV=production gameserver:latest"

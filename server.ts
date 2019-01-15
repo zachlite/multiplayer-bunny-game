@@ -8,12 +8,65 @@ import { InputRequest, State, MeshTypes, Entity } from "./common/interfaces";
 import { step } from "./common/state";
 import { initPlayer } from "./common/player";
 import { initialState } from "./common/initialState";
+import { getCurrentScene } from "./common/scene";
 const FRAME_BUFFER = 4; // wait 4 frames before processing input
 
 const io = socketio(5555);
+
+const PLAYERS_PER_PARTY = 2;
+
+interface Party {
+  id: string;
+  partySize: number;
+  state: State;
+  clientBuffer: InputRequest[];
+  clientSocketIds: {
+    [id: string]: string;
+  };
+}
+
+let parties: Party[] = [];
+
 io.on("connection", socket => {
-  initClient(socket);
-  socket.on("player_input", onReceiveInput);
+  // get the first available party
+  const availableParty = parties.find(
+    party => party.partySize < PLAYERS_PER_PARTY
+  );
+
+  const clientId = _.uniqueId("client-");
+
+  const party = availableParty
+    ? {
+        ...availableParty,
+        partySize: availableParty.partySize + 1,
+        clientSocketIds: {
+          ...availableParty.clientSocketIds,
+          [socket.id]: clientId
+        }
+      }
+    : {
+        id: _.uniqueId("party_"),
+        state: initialState,
+        partySize: 1,
+        clientBuffer: [],
+        clientSocketIds: {
+          [socket.id]: clientId
+        }
+      };
+
+  parties = availableParty
+    ? parties.map(p => (p.id === party.id ? party : p))
+    : [...parties, party];
+
+  socket.join(party.id, () => {
+    initClient(socket, clientId);
+  });
+
+  console.log(party.id);
+
+  // a new client has joined the party
+
+  socket.on("player_input", input => onReceiveInput(input, socket));
   socket.on("disconnect", () => onClientDisconnect(socket));
 });
 
@@ -27,54 +80,70 @@ io.on("connection", socket => {
 
 // every 4 ticks, step
 
-let clientBuffer: InputRequest[] = [];
+function getParty(socket) {
+  return parties.find(party => party.clientSocketIds[socket.id] !== undefined);
+}
 
-let state: State = initialState;
-
-let clientIds: { [socketId: string]: string } = {};
-
-const colors = [[1, 0, 0], [0, 1, 0], [0, 0, 1], [1, 1, 1]];
-
-function initClient(socket: socketio.Socket) {
+function initClient(socket: socketio.Socket, clientId) {
   console.log("client connected", socket.id);
-
-  // create a new clientId
-  const clientId = _.uniqueId("client-");
 
   // send it to the client
   socket.emit("welcome", { clientId });
 
+  let party = getParty(socket);
+  console.log(socket.rooms);
+
   // get color for client and make color unavailable
-  const color = colors[(Object.keys(clientIds).length - 1) % 4];
+  const colors = [[1, 0, 0], [0, 1, 0], [0, 0, 1], [1, 1, 1]];
+  const color = colors[(party.partySize - 1) % 4];
 
   // create a player with this id
-  state.push(initPlayer(clientId, MeshTypes.BUNNY, color));
-  clientIds[socket.id] = clientId;
+  party.state.push(initPlayer(clientId, MeshTypes.BUNNY, color));
 }
 
 function onClientDisconnect(socket: socketio.Socket) {
   console.log("client disconnected", socket.id);
-  state = state.filter(e => e.id !== clientIds[socket.id]);
-  delete clientIds[socket.id];
+
+  let party = getParty(socket);
+
+  party.state = party.state.filter(
+    e => e.id !== party.clientSocketIds[socket.id]
+  );
+
+  delete party.clientSocketIds[socket.id];
+  party.partySize -= 1;
+  console.log(parties);
 }
 
-function onReceiveInput(input: InputRequest) {
+function onReceiveInput(input: InputRequest, socket) {
+  let party = getParty(socket);
+
   setTimeout(() => {
-    clientBuffer.push(input);
+    party.clientBuffer.push(input);
   }, LATENCY);
 }
 
-function tick() {
+// make one of these for each party
+
+function tick(party: Party): Party {
+  if (getCurrentScene(party.state) !== "GAME") return party;
+
   // process each client's input from the buffer
-  const connectedClients = Object.keys(clientIds).length;
-  const inputRequestsChunks = _.chunk(clientBuffer, connectedClients);
+  const connectedClients = party.partySize;
+  const inputRequestsChunks = _.chunk(party.clientBuffer, connectedClients);
 
   inputRequestsChunks.forEach(inputRequests => {
-    state = step(state, inputRequests);
+    party.state = step(party.state, inputRequests);
   });
 
+  // clear the buffer
+  party.clientBuffer = [];
+  return party;
+}
+
+function updateClients(party: Party) {
   // need ack frames for each client
-  const acks: { [clientId: string]: number } = clientBuffer.reduce(
+  const acks: { [clientId: string]: number } = party.clientBuffer.reduce(
     (prev, curr) => {
       return { ...prev, [curr.clientId]: curr.frame };
     },
@@ -84,17 +153,27 @@ function tick() {
   // send state to all clients with ack
   // only send non-cube state
 
-  io.emit("update", { players: state.filter(e => e.type === "PLAYER"), acks });
-
-  // clear the buffer
-  clientBuffer = [];
+  io.in(party.id).emit("update", {
+    players: party.state.filter(e => e.type === "PLAYER"),
+    acks
+  });
 }
 
-function initClock(tick) {
-  setInterval(tick, FRAME * FRAME_BUFFER);
-}
+(() => {
+  setInterval(() => {
+    // tick for each party
+    // parties = parties.map
+    parties = parties.map(party => tick(party));
 
-initClock(tick);
+    parties
+      .filter(party => party.partySize > 0)
+      .forEach(party => {
+        updateClients(party);
+      });
+
+    // send updates for each party
+  }, FRAME * FRAME_BUFFER);
+})();
 
 console.log("game server running..");
 

@@ -90,4 +90,18 @@ const timer: Entity = {
   }
 };
 
-export const initialState: State = [...cubes, ground, dummy, ...coins, timer];
+const sceneManager: Entity = {
+  id: "scene-manager",
+  type: "SCENE_MANAGER",
+  isActive: true,
+  sceneManager: { currentScene: "GAME" }
+};
+
+export const initialState: State = [
+  ...cubes,
+  ground,
+  dummy,
+  ...coins,
+  timer,
+  sceneManager
+];

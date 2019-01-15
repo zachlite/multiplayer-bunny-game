@@ -12,7 +12,8 @@ import {
   Collider,
   TriggerActiveMessage,
   InputRequest,
-  MeshTypes
+  MeshTypes,
+  SceneTransitionMessage
 } from "./interfaces";
 import { FRAME } from "./clock";
 import { degreeToRadian } from "./math";
@@ -349,14 +350,37 @@ function tickClock(entity: Entity, messages: Message[]): [Entity, Message[]] {
     entity.timer.lastTime === 0 ? currentTime : entity.timer.lastTime;
   const diff = currentTime - lastTime;
 
+  const timeRemaining = entity.timer.timeRemaining - diff;
+
   const nextEntity = {
     ...entity,
     timer: {
       lastTime: currentTime,
-      timeRemaining: entity.timer.timeRemaining - diff
+      timeRemaining
     }
   };
-  return [nextEntity, []];
+
+  const newMessages =
+    timeRemaining < 0
+      ? [{ subject: MessageType.SCENE_TRANSITION, scene: "GAME_OVER" }]
+      : [];
+
+  return [nextEntity, newMessages as SceneTransitionMessage[]];
+}
+
+function sceneManager(
+  entity: Entity,
+  messages: Message[]
+): [Entity, Message[]] {
+  // if there is a game over message, transition to GAME_OVER
+
+  const transition = messages.find(
+    m => m.subject === MessageType.SCENE_TRANSITION
+  ) as SceneTransitionMessage;
+
+  return transition
+    ? [{ ...entity, sceneManager: { currentScene: transition.scene } }, []]
+    : [entity, []];
 }
 
 function system(
@@ -419,7 +443,8 @@ function getNextState(state: State, messages: Message[]) {
       (e: Entity) => e.collider !== undefined && e.body !== undefined,
       updateColliderTransform
     ],
-    [(e: Entity) => e.type === "TIMER", tickClock]
+    [(e: Entity) => e.type === "TIMER", tickClock],
+    [(e: Entity) => e.type === "SCENE_MANAGER", sceneManager]
   ];
 
   // seed initial state with coins. done

@@ -53,10 +53,14 @@ export interface Timer {
   timeRemaining: number;
 }
 
+export interface SceneManager {
+  currentScene: "GAME" | "GAME_OVER";
+}
+
 export interface Entity {
   id: string;
   isActive: boolean;
-  type?: "PLAYER" | "CUBE" | "COIN" | "TIMER";
+  type?: "PLAYER" | "CUBE" | "COIN" | "TIMER" | "SCENE_MANAGER";
   mesh?: Mesh;
   body?: PhysicalBody;
   collider?: Collider;
@@ -64,6 +68,7 @@ export interface Entity {
   coin?: Coin;
   color?: number[];
   timer?: Timer;
+  sceneManager?: SceneManager;
 }
 
 export enum MeshTypes {
@@ -81,7 +86,8 @@ export enum MessageType {
   COLLISION_START,
   COLLISION_END,
   COLLISION_ACTIVE,
-  TRIGGER_ACTIVE
+  TRIGGER_ACTIVE,
+  SCENE_TRANSITION
 }
 
 interface BaseMessage {
@@ -112,12 +118,17 @@ export interface TriggerActiveMessage extends BaseMessage {
   entityId: string;
 }
 
+export interface SceneTransitionMessage extends BaseMessage {
+  scene: "GAME" | "GAME_OVER";
+}
+
 export type Message =
   | InputMessage
   | CollisionStartMessage
   | CollisionEndMessage
   | CollisionActiveMessage
-  | TriggerActiveMessage;
+  | TriggerActiveMessage
+  | SceneTransitionMessage;
 
 export interface Camera {
   position: Vec3;
