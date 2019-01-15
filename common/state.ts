@@ -342,6 +342,23 @@ function reactivateCoin(
   return [updatedEntity, []];
 }
 
+function tickClock(entity: Entity, messages: Message[]): [Entity, Message[]] {
+  const currentTime = Date.now();
+
+  const lastTime =
+    entity.timer.lastTime === 0 ? currentTime : entity.timer.lastTime;
+  const diff = currentTime - lastTime;
+
+  const nextEntity = {
+    ...entity,
+    timer: {
+      lastTime: currentTime,
+      timeRemaining: entity.timer.timeRemaining - diff
+    }
+  };
+  return [nextEntity, []];
+}
+
 function system(
   state: State,
   messages: Message[],
@@ -401,7 +418,8 @@ function getNextState(state: State, messages: Message[]) {
     [
       (e: Entity) => e.collider !== undefined && e.body !== undefined,
       updateColliderTransform
-    ]
+    ],
+    [(e: Entity) => e.type === "TIMER", tickClock]
   ];
 
   // seed initial state with coins. done

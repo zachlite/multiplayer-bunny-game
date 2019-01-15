@@ -206,5 +206,19 @@ export const initDrawing = (r: regl.Regl) => {
 
     // draw all connected player scores
     drawScores(state.filter(e => e.type === "PLAYER"), clientId);
+
+    // draw time remaining
+    const timer = state.find(e => e.type === "TIMER");
+    drawText(
+      (timer.timer.timeRemaining / 1000).toFixed(0).toString(),
+      {
+        position: { x: 0, y: 35, z: 0 },
+        rotation: { x: 180, y: 0, z: 0 },
+        scale: { x: 3, y: 3, z: 3 }
+      },
+      textCamera,
+      projectionMatrix,
+      [1, 1, 1]
+    );
   };
 };

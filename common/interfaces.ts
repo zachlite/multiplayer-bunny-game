@@ -48,15 +48,22 @@ export interface Coin {
   timeSinceDeactivation: number;
 }
 
+export interface Timer {
+  lastTime: number;
+  timeRemaining: number;
+}
+
 export interface Entity {
   id: string;
   isActive: boolean;
-  type?: "PLAYER" | "CUBE" | "COIN";
+  type?: "PLAYER" | "CUBE" | "COIN" | "TIMER";
   mesh?: Mesh;
   body?: PhysicalBody;
   collider?: Collider;
   score?: number;
   coin?: Coin;
+  color?: number[];
+  timer?: Timer;
 }
 
 export enum MeshTypes {

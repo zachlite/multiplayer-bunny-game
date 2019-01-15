@@ -2,6 +2,7 @@ import * as _ from "lodash";
 import { Entity, MeshTypes, State } from "./interfaces";
 import random from "./random";
 import { makeCoin } from "./coin";
+import { FRAME } from "./clock";
 
 const cubes = _.range(50)
   .map(i => {
@@ -79,4 +80,14 @@ const dummy: Entity = {
 
 const coins = cubes.map(makeCoin);
 
-export const initialState: State = [...cubes, ground, dummy, ...coins];
+const timer: Entity = {
+  id: "timer",
+  type: "TIMER",
+  isActive: true,
+  timer: {
+    lastTime: 0,
+    timeRemaining: 60 * 1000 // milliseconds
+  }
+};
+
+export const initialState: State = [...cubes, ground, dummy, ...coins, timer];
