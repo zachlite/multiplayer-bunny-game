@@ -24,7 +24,7 @@ import { defaultShader } from "./shaders/default";
 import { cube as cubeShader } from "./shaders/cube";
 import { boundingBox as boundingBoxShader } from "./shaders/boundingBox";
 import { boundingBox } from "./meshes/boundingBox";
-import { TextMesh } from "./drawText";
+import { getTextMeshes } from "./textMeshes";
 
 // initialize meshes once
 
@@ -34,25 +34,30 @@ import { TextMesh } from "./drawText";
 
 // recalculate modelViewMatrix, and batch draw.
 
-const CAMERA_ANGLE = 20;
-const CAMERA_HEIGHT = 30;
-const CAMERA_DEPTH = 100;
+const defaultCameraSettings = {
+  angle: 20,
+  height: 30,
+  depth: 100
+};
 
-const getCamera = (transform?: Transform): Camera => {
+const getCamera = (
+  transform?: Transform,
+  settings = defaultCameraSettings
+): Camera => {
   const cameraRotation = {
-    x: CAMERA_ANGLE,
+    x: settings.angle,
     y: transform.rotation.y * -1,
     z: 0
   };
   const position = transform ? transform.position : { x: 0, y: 0, z: 0 };
   const cameraPosition = {
     x:
-      CAMERA_DEPTH * Math.sin(degreeToRadian(transform.rotation.y)) * -1 -
+      settings.depth * Math.sin(degreeToRadian(transform.rotation.y)) * -1 -
       position.x,
     z:
-      CAMERA_DEPTH * Math.cos(degreeToRadian(transform.rotation.y)) * -1 -
+      settings.depth * Math.cos(degreeToRadian(transform.rotation.y)) * -1 -
       position.z,
-    y: position.y * -1 - CAMERA_HEIGHT
+    y: position.y * -1 - settings.height
   };
   return {
     rotation: cameraRotation,
@@ -117,58 +122,49 @@ export const initDrawing = (r: regl.Regl) => {
 
   const projectionMatrix = getProjectionMatrix(1080, 720);
 
-  const vectorizeText = require("vectorize-text");
+  const textMeshes = getTextMeshes(r);
 
-  // const lookAt = require("gl-mat4/lookAt");
-  // const perspective = require("gl-mat4/perspective");
+  function drawText(text: string, transform, camera, projection, color) {
+    text.split("").forEach((char, i) => {
+      textMeshes[char].draw({
+        modelViewMatrix: getModelViewMatrix(
+          {
+            ...transform,
+            position: {
+              ...transform.position,
+              x: transform.position.x + 1.2 * i
+            }
+          },
+          camera
+        ),
+        projectionMatrix: projection,
+        color
+      });
+    });
+  }
 
-  // const drawText = r({
+  function drawScores(players: Entity[], clientId: string) {
+    _.orderBy(players, "score", "desc").forEach((player, i) => {
+      const scale = 2;
 
-  //   attributes: {
-  //     position: textMesh.positions
-  //   },
+      const textTransform = {
+        position: { x: -50, y: 30 - 3 * i, z: 0 },
+        rotation: { x: 180, y: 0, z: 0 },
+        scale: { x: scale, y: scale, z: scale }
+      };
 
-  //   elements: textMesh.edges,
-
-  //   uniforms: {
-  //     t: ({ tick }) => 0.01 * tick,
-
-  //     view: ({ tick }) => {
-  //       const t = 0.01 * tick;
-  //       return lookAt(
-  //         [],
-  //         [5 * Math.sin(t), 0, -5 * Math.cos(t)],
-  //         [0, 0, 0],
-  //         [0, -1, 0]
-  //       );
-  //     },
-
-  //     projection: ({ viewportWidth, viewportHeight }) =>
-  //       perspective([], Math.PI / 4, viewportWidth / viewportHeight, 0.01, 1000)
-  //   },
-
-  //   depth: { enable: false }
-  // });
-
-  const textConfig = {
-    triangles: true,
-    textBaseline: "middle",
-    fontSize: "12px",
-    fontWeight: "100"
-  };
-
-  const textMeshes = {
-    "0": TextMesh(r, { ...vectorizeText("0", textConfig) }),
-    "1": TextMesh(r, { ...vectorizeText("1", textConfig) }),
-    "2": TextMesh(r, { ...vectorizeText("2", textConfig) }),
-    "3": TextMesh(r, { ...vectorizeText("3", textConfig) }),
-    "4": TextMesh(r, { ...vectorizeText("4", textConfig) }),
-    "5": TextMesh(r, { ...vectorizeText("5", textConfig) }),
-    "6": TextMesh(r, { ...vectorizeText("6", textConfig) }),
-    "7": TextMesh(r, { ...vectorizeText("6", textConfig) }),
-    "8": TextMesh(r, { ...vectorizeText("6", textConfig) }),
-    "9": TextMesh(r, { ...vectorizeText("6", textConfig) })
-  };
+      drawText(
+        `player-${player.id}: ${player.score}`,
+        textTransform,
+        {
+          position: { x: 0, y: 0, z: -100 },
+          rotation: { x: 0, y: 0, z: 0 }
+        },
+        projectionMatrix,
+        player.id === clientId ? [1, 0, 0] : [1, 1, 1]
+      );
+    });
+  }
 
   return (state: State, clientId: string) => {
     // create camera for player
@@ -207,24 +203,7 @@ export const initDrawing = (r: regl.Regl) => {
       }
     });
 
-    // draw player's score
-    const score = state.find(e => e.id === clientId).score.toString();
-
-    score.split("").forEach((digit, i) => {
-      textMeshes[digit].draw({
-        modelViewMatrix: getModelViewMatrix(
-          {
-            position: { x: 40 + i * 5, y: 40, z: 0 },
-            rotation: { x: 180, y: 0, z: 0 },
-            scale: { x: 20, y: 20, z: 20 }
-          },
-          {
-            position: { x: 0, y: 0, z: -100 },
-            rotation: { x: 0, y: 0, z: 0 }
-          }
-        ),
-        projectionMatrix
-      });
-    });
+    // draw all connected player scores
+    drawScores(state.filter(e => e.type === "PLAYER"), clientId);
   };
 };
