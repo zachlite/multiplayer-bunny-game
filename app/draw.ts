@@ -123,6 +123,10 @@ export const initDrawing = (r: regl.Regl) => {
   const projectionMatrix = getProjectionMatrix(1080, 720);
 
   const textMeshes = getTextMeshes(r);
+  const textCamera = {
+    position: { x: 0, y: 0, z: -100 },
+    rotation: { x: 0, y: 0, z: 0 }
+  };
 
   function drawText(text: string, transform, camera, projection, color) {
     text.split("").forEach((char, i) => {
@@ -148,7 +152,7 @@ export const initDrawing = (r: regl.Regl) => {
       const scale = 2;
 
       const textTransform = {
-        position: { x: -50, y: 30 - 3 * i, z: 0 },
+        position: { x: -60, y: 35 - 3 * i, z: 0 },
         rotation: { x: 180, y: 0, z: 0 },
         scale: { x: scale, y: scale, z: scale }
       };
@@ -156,12 +160,9 @@ export const initDrawing = (r: regl.Regl) => {
       drawText(
         `player-${player.id}: ${player.score}`,
         textTransform,
-        {
-          position: { x: 0, y: 0, z: -100 },
-          rotation: { x: 0, y: 0, z: 0 }
-        },
+        textCamera,
         projectionMatrix,
-        player.id === clientId ? [1, 0, 0] : [1, 1, 1]
+        player.color
       );
     });
   }

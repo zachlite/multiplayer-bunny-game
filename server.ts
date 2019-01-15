@@ -33,8 +33,7 @@ let state: State = initialState;
 
 let clientIds: { [socketId: string]: string } = {};
 
-// when a client connects, create a player for them.
-// the client will receive this on the next state update.
+const colors = [[1, 0, 0], [0, 1, 0], [0, 0, 1], [1, 1, 1]];
 
 function initClient(socket: socketio.Socket) {
   console.log("client connected", socket.id);
@@ -45,8 +44,11 @@ function initClient(socket: socketio.Socket) {
   // send it to the client
   socket.emit("welcome", { clientId });
 
+  // get color for client and make color unavailable
+  const color = colors[(Object.keys(clientIds).length - 1) % 4];
+
   // create a player with this id
-  state.push(initPlayer(clientId, MeshTypes.BUNNY));
+  state.push(initPlayer(clientId, MeshTypes.BUNNY, color));
   clientIds[socket.id] = clientId;
 }
 
