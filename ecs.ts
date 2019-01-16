@@ -42,6 +42,7 @@ worker.onmessage = e => {
         clientId,
         savedFrames
       );
+
       state = stateUpdate[0];
       savedFrames = stateUpdate[1];
       break;
@@ -98,10 +99,13 @@ window.onload = () => {
 
   const canvas = document.getElementById("canvas");
 
+  let canRequestReset = true;
+
   function gameLoop() {
     switch (getCurrentScene(state)) {
       case "GAME":
         {
+          canRequestReset = true;
           const currentInput = { ...input };
           const inputRequest = { clientId, frame, input: currentInput };
 
@@ -127,13 +131,18 @@ window.onload = () => {
 
       case "GAME_OVER":
         {
-          console.log(
-            "any state that needs to be managed in the game over scene happens here"
-          );
-
-          // when space is pressed, transition back to somewhere
+          if (input.flap && canRequestReset) {
+            // tell the server
+            // on the server, remove this player from the current party and create a new party
+            console.log("requesting new game");
+            canRequestReset = false;
+            worker.postMessage({ type: "PLAY_AGAIN" });
+          }
         }
 
+        break;
+
+      default:
         break;
     }
   }
@@ -154,6 +163,10 @@ window.onload = () => {
     const currentScene = getCurrentScene(state);
 
     switch (currentScene) {
+      case "LOBBY":
+        draw.drawLobby(state, clientId);
+        break;
+
       case "GAME":
         draw.drawGame(state, clientId);
         break;

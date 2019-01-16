@@ -36,12 +36,12 @@ const textConfig = {
 
 export function drawExample(r) {
   const { cells, positions } = vectorizeText("wassssssup", textConfig);
-  console.log(positions.length);
   return TextMesh(r, { cells, positions });
 }
 
 export function getTextMeshes(r) {
-  const chars = "abcdefghijlkmnopqrstuvwxyz0123456789-: !";
+  const chars =
+    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijlkmnopqrstuvwxyz0123456789-: !.";
 
   const meshes = chars.split("").reduce((acc, curr) => {
     return {

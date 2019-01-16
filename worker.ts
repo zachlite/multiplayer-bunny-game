@@ -21,5 +21,8 @@ onmessage = e => {
     case "SEND_FRAME":
       socket.emit("player_input", e.data.payload);
       break;
+    case "PLAY_AGAIN":
+      socket.emit("play_again");
+      break;
   }
 };

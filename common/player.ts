@@ -9,9 +9,9 @@ export function initPlayer(
   color: number[]
 ): Entity {
   const startPosition = {
-    x: _.sample(_.range(50)),
+    x: _.sample(_.range(100)),
     y: 5,
-    z: -100
+    z: _.sample(_.range(100))
   };
   return {
     id,

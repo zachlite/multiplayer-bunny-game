@@ -54,7 +54,7 @@ export interface Timer {
 }
 
 export interface SceneManager {
-  currentScene: "GAME" | "GAME_OVER";
+  currentScene: "LOBBY" | "GAME" | "GAME_OVER";
 }
 
 export interface Entity {

@@ -1,6 +1,7 @@
 import * as _ from "lodash";
 import { State, Entity } from "../common/interfaces";
 import { step } from "../common/state";
+import { getCurrentScene } from "../common/scene";
 
 export function receiveUpdate(
   state: State,
@@ -30,17 +31,25 @@ export function receiveUpdate(
     e => e.type !== "PLAYER" || _.includes(entityIdsFromServer, e.id)
   );
 
-  // filter all saved frames sinces the ack
-  const ackFrame: number = acks[clientId];
-  const framesSinceAck = savedFrames.filter(sf => sf.frame > ackFrame);
+  switch (getCurrentScene(nextState)) {
+    case "GAME": {
+      // filter all saved frames sinces the ack
+      const ackFrame: number = acks[clientId];
+      const framesSinceAck = savedFrames.filter(sf => sf.frame > ackFrame);
 
-  // replay all frames since the ack.
-  framesSinceAck.forEach(sf => {
-    nextState = step(nextState, [sf.inputRequest]);
-  });
+      console.log(framesSinceAck, acks);
 
-  // throw away ack frame.
-  savedFrames = savedFrames.filter(sf => sf.frame !== ackFrame);
+      // replay all frames since the ack.
+      framesSinceAck.forEach(sf => {
+        nextState = step(nextState, [sf.inputRequest]);
+      });
 
-  return [nextState, savedFrames];
+      // throw away ack frame.
+      savedFrames = savedFrames.filter(sf => sf.frame !== ackFrame);
+      return [nextState, savedFrames];
+    }
+
+    default:
+      return [nextState, savedFrames];
+  }
 }

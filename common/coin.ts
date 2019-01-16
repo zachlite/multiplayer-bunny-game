@@ -27,7 +27,7 @@ export function makeCoin(cube: Entity) {
       isTrigger: true,
       isStatic: true,
       debug__activeCollision: false,
-      debug__drawOutline: true
+      debug__drawOutline: false
     },
     coin: { timeSinceDeactivation: 0 }
   };

@@ -166,6 +166,57 @@ export const initDrawing = (r: regl.Regl) => {
   }
 
   return {
+    drawLobby: (state: State, client: string) => {
+      const playersInLobby = state.filter(e => e.type === "PLAYER");
+
+      drawText(
+        `Party Lobby`,
+        {
+          position: { x: -15, y: 25, z: 0 },
+          rotation: { x: 180, y: 0, z: 0 },
+          scale: { x: 4, y: 4, z: 4 }
+        },
+        2.5,
+        [1, 1, 1]
+      );
+
+      drawText(
+        `Waiting for ${4 - playersInLobby.length} more players`,
+        {
+          position: { x: -15, y: 15, z: 0 },
+          rotation: { x: 180, y: 0, z: 0 },
+          scale: { x: 2, y: 2, z: 2 }
+        },
+        1.2,
+        [1, 1, 1]
+      );
+
+      // display everyone in the lobby:
+      playersInLobby.forEach((p, i) => {
+        drawText(
+          p.id,
+          {
+            position: { x: -10, y: 10 - 5 * i, z: 0 },
+            rotation: { x: 180, y: 0, z: 0 },
+            scale: { x: 2, y: 2, z: 2 }
+          },
+          1.2,
+          p.color
+        );
+      });
+
+      // display instructions
+      drawText(
+        "Move with WASD. Jump with Space",
+        {
+          position: { x: -15, y: -30, z: 0 },
+          rotation: { x: 180, y: 0, z: 0 },
+          scale: { x: 1.5, y: 1.5, z: 1.5 }
+        },
+        1,
+        [1, 1, 1]
+      );
+    },
     drawGame: (state: State, clientId: string) => {
       const player: Entity | undefined = _.first(
         state.filter(entity => entity.id === clientId)

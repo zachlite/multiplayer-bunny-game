@@ -4,7 +4,7 @@ import random from "./random";
 import { makeCoin } from "./coin";
 import { FRAME } from "./clock";
 
-const cubes = _.range(3)
+const cubes = _.range(30)
   .map(i => {
     return {
       x: random(-100, 100),
@@ -59,7 +59,7 @@ const ground: Entity = {
     isTrigger: false,
     isStatic: true,
     debug__activeCollision: false,
-    debug__drawOutline: true
+    debug__drawOutline: false
   }
 };
 
@@ -86,15 +86,14 @@ const timer: Entity = {
   isActive: true,
   timer: {
     lastTime: 0,
-    timeRemaining: 15 * 1000 // milliseconds
+    timeRemaining: 60 * 1000 // milliseconds
   }
 };
-
 const sceneManager: Entity = {
   id: "scene-manager",
   type: "SCENE_MANAGER",
   isActive: true,
-  sceneManager: { currentScene: "GAME" }
+  sceneManager: { currentScene: "LOBBY" }
 };
 
 export const initialState: State = [

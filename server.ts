@@ -4,16 +4,22 @@ import * as express from "express";
 import * as path from "path";
 
 import { FRAME, LATENCY } from "./common/clock";
-import { InputRequest, State, MeshTypes, Entity } from "./common/interfaces";
+import {
+  InputRequest,
+  State,
+  MeshTypes,
+  SceneManager
+} from "./common/interfaces";
 import { step } from "./common/state";
 import { initPlayer } from "./common/player";
 import { initialState } from "./common/initialState";
 import { getCurrentScene } from "./common/scene";
+import { clientName } from "./common/clientName";
 const FRAME_BUFFER = 4; // wait 4 frames before processing input
 
 const io = socketio(5555);
 
-const PLAYERS_PER_PARTY = 2;
+const PLAYERS_PER_PARTY = 4;
 
 interface Party {
   id: string;
@@ -27,45 +33,77 @@ interface Party {
 
 let parties: Party[] = [];
 
-io.on("connection", socket => {
-  // get the first available party
-  const availableParty = parties.find(
-    party => party.partySize < PLAYERS_PER_PARTY
+function createParty(): Party {
+  return {
+    id: _.uniqueId("party_"),
+    state: [...initialState],
+    partySize: 0,
+    clientBuffer: [],
+    clientSocketIds: {}
+  };
+}
+
+function addClientToParty(party: Party, socket, clientId: string): Party {
+  return {
+    ...party,
+    partySize: party.partySize + 1,
+    clientSocketIds: {
+      ...party.clientSocketIds,
+      [socket.id]: clientId
+    }
+  };
+}
+
+function removeClientFromParty(party: Party, socket) {
+  party.state = party.state.filter(
+    e => e.id !== party.clientSocketIds[socket.id]
   );
 
-  const clientId = _.uniqueId("client-");
+  socket.leave(party.id);
 
-  const party = availableParty
-    ? {
-        ...availableParty,
-        partySize: availableParty.partySize + 1,
-        clientSocketIds: {
-          ...availableParty.clientSocketIds,
-          [socket.id]: clientId
-        }
-      }
-    : {
-        id: _.uniqueId("party_"),
-        state: [...initialState],
-        partySize: 1,
-        clientBuffer: [],
-        clientSocketIds: {
-          [socket.id]: clientId
-        }
-      };
+  delete party.clientSocketIds[socket.id];
+  party.partySize -= 1;
+
+  if (party.partySize === 0) {
+    parties = parties.filter(p => p.id !== party.id);
+  }
+}
+
+function joinAvailableParty(socket, clientId) {
+  const availableParty = parties.find(
+    party =>
+      party.partySize < PLAYERS_PER_PARTY &&
+      party.state.find(e => e.type === "SCENE_MANAGER").sceneManager
+        .currentScene === "LOBBY"
+  );
+
+  const party = availableParty ? availableParty : createParty();
+  const partyWithClient = addClientToParty(party, socket, clientId);
 
   parties = availableParty
-    ? parties.map(p => (p.id === party.id ? party : p))
-    : [...parties, party];
+    ? parties.map(p => (p.id === party.id ? partyWithClient : p))
+    : [...parties, partyWithClient];
 
-  socket.join(party.id, () => {
-    initClient(socket, clientId);
-  });
+  socket.join(partyWithClient.id);
+  return partyWithClient;
+}
 
-  // a new client has joined the party
+io.on("connection", socket => {
+  // get the first available party
+
+  const clientId = clientName();
+  console.log("client connected", socket.id);
+
+  const party = joinAvailableParty(socket, clientId);
+
+  // send it to the client
+  socket.emit("welcome", { clientId });
+
+  initPlayerForClient(clientId, party);
 
   socket.on("player_input", input => onReceiveInput(input, socket));
   socket.on("disconnect", () => onClientDisconnect(socket));
+  socket.on("play_again", () => playAgain(socket));
 });
 
 /**
@@ -78,18 +116,10 @@ io.on("connection", socket => {
 
 // every 4 ticks, step
 
-function getParty(socket) {
-  return parties.find(party => party.clientSocketIds[socket.id] !== undefined);
-}
+// don't try and keep people together
+// when a player wants to play again, get an available party or make a new one
 
-function initClient(socket: socketio.Socket, clientId) {
-  console.log("client connected", socket.id);
-
-  // send it to the client
-  socket.emit("welcome", { clientId });
-
-  let party = getParty(socket);
-
+function initPlayerForClient(clientId: string, party: Party) {
   // get color for client and make color unavailable
   const colors = [[1, 0, 0], [0, 1, 0], [0, 0, 1], [1, 1, 1]];
   const color = colors[(party.partySize - 1) % 4];
@@ -98,21 +128,24 @@ function initClient(socket: socketio.Socket, clientId) {
   party.state.push(initPlayer(clientId, MeshTypes.BUNNY, color));
 }
 
+function playAgain(socket) {
+  const oldParty = getParty(socket);
+  const clientId = oldParty.clientSocketIds[socket.id];
+  const newParty = joinAvailableParty(socket, clientId);
+
+  removeClientFromParty(oldParty, socket);
+  initPlayerForClient(clientId, newParty);
+}
+
+function getParty(socket) {
+  return parties.find(party => party.clientSocketIds[socket.id] !== undefined);
+}
+
 function onClientDisconnect(socket: socketio.Socket) {
   console.log("client disconnected", socket.id);
 
   let party = getParty(socket);
-
-  party.state = party.state.filter(
-    e => e.id !== party.clientSocketIds[socket.id]
-  );
-
-  delete party.clientSocketIds[socket.id];
-  party.partySize -= 1;
-
-  if (party.partySize === 0) {
-    parties = parties.filter(p => p.id !== party.id);
-  }
+  removeClientFromParty(party, socket);
 }
 
 function onReceiveInput(input: InputRequest, socket) {
@@ -126,19 +159,34 @@ function onReceiveInput(input: InputRequest, socket) {
 // make one of these for each party
 
 function tick(party: Party): Party {
-  if (getCurrentScene(party.state) !== "GAME") return party;
+  switch (getCurrentScene(party.state)) {
+    case "LOBBY": {
+      // if the lobby has met the requisite number of players, update scene manager
 
-  // process each client's input from the buffer
-  const connectedClients = party.partySize;
-  const inputRequestsChunks = _.chunk(party.clientBuffer, connectedClients);
+      party.state = party.state.map(e =>
+        e.type === "SCENE_MANAGER" && party.partySize === PLAYERS_PER_PARTY
+          ? { ...e, sceneManager: { currentScene: "GAME" } as SceneManager }
+          : e
+      );
+      return party;
+    }
 
-  inputRequestsChunks.forEach(inputRequests => {
-    party.state = step(party.state, inputRequests);
-  });
+    case "GAME": {
+      // process each client's input from the buffer
+      const connectedClients = party.partySize;
+      const inputRequestsChunks = _.chunk(party.clientBuffer, connectedClients);
 
-  // clear the buffer
-  party.clientBuffer = [];
-  return party;
+      inputRequestsChunks.forEach(inputRequests => {
+        party.state = step(party.state, inputRequests);
+      });
+
+      // clear the buffer
+      return party;
+    }
+
+    default:
+      return party;
+  }
 }
 
 function updateClients(party: Party) {
@@ -160,6 +208,8 @@ function updateClients(party: Party) {
     ),
     acks
   });
+
+  party.clientBuffer = [];
 }
 
 (() => {
@@ -168,6 +218,7 @@ function updateClients(party: Party) {
     parties = parties.map(party => tick(party));
 
     // send updates for each party
+
     parties
       .filter(party => party.partySize > 0)
       .forEach(party => {
