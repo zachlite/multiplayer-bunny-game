@@ -4,30 +4,30 @@ import { step } from "../common/state";
 
 export function receiveUpdate(
   state: State,
-  players: Entity[],
+  updates: Entity[],
   acks,
   clientId: string,
   savedFrames
 ) {
   let nextState = [...state];
 
-  players.forEach(player => {
-    // is this player already in local state?
-    const i = nextState.findIndex(e => e.id === player.id);
+  updates.forEach(entity => {
+    // is this entity already in local state?
+    const i = nextState.findIndex(e => e.id === entity.id);
 
-    // if this player is not in local state, add the player
-    // else, just update.
+    // if this entity is not in local state, add the entity
+    // else, just update the entity.
     if (i === -1) {
-      nextState.push(player);
+      nextState.push(entity);
     } else {
-      nextState[i] = player;
+      nextState[i] = entity;
     }
   });
 
-  // if there's an entity in local state that is no longer in server state, delete it.
-  const playerIdsFromServer = players.map(e => e.id);
+  // if there's an entity in local state that is not in server state, delete it.
+  const entityIdsFromServer = updates.map(e => e.id);
   nextState = nextState.filter(
-    e => e.type !== "PLAYER" || _.includes(playerIdsFromServer, e.id)
+    e => e.type !== "PLAYER" || _.includes(entityIdsFromServer, e.id)
   );
 
   // filter all saved frames sinces the ack

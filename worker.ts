@@ -10,9 +10,9 @@ socket.on("welcome", data => {
   postMessage({ type: "CLIENT_ID", clientId: data.clientId });
 });
 
-socket.on("update", ({ players, acks }) => {
+socket.on("update", ({ updates, acks }) => {
   setTimeout(() => {
-    postMessage({ type: "STATE_UPDATE", players, acks });
+    postMessage({ type: "STATE_UPDATE", updates, acks });
   }, LATENCY);
 });
 

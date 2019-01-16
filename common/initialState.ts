@@ -4,7 +4,7 @@ import random from "./random";
 import { makeCoin } from "./coin";
 import { FRAME } from "./clock";
 
-const cubes = _.range(50)
+const cubes = _.range(3)
   .map(i => {
     return {
       x: random(-100, 100),
@@ -86,7 +86,7 @@ const timer: Entity = {
   isActive: true,
   timer: {
     lastTime: 0,
-    timeRemaining: 60 * 1000 // milliseconds
+    timeRemaining: 15 * 1000 // milliseconds
   }
 };
 

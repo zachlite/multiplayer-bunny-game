@@ -46,7 +46,7 @@ io.on("connection", socket => {
       }
     : {
         id: _.uniqueId("party_"),
-        state: initialState,
+        state: [...initialState],
         partySize: 1,
         clientBuffer: [],
         clientSocketIds: {
@@ -61,8 +61,6 @@ io.on("connection", socket => {
   socket.join(party.id, () => {
     initClient(socket, clientId);
   });
-
-  console.log(party.id);
 
   // a new client has joined the party
 
@@ -91,7 +89,6 @@ function initClient(socket: socketio.Socket, clientId) {
   socket.emit("welcome", { clientId });
 
   let party = getParty(socket);
-  console.log(socket.rooms);
 
   // get color for client and make color unavailable
   const colors = [[1, 0, 0], [0, 1, 0], [0, 0, 1], [1, 1, 1]];
@@ -112,7 +109,10 @@ function onClientDisconnect(socket: socketio.Socket) {
 
   delete party.clientSocketIds[socket.id];
   party.partySize -= 1;
-  console.log(parties);
+
+  if (party.partySize === 0) {
+    parties = parties.filter(p => p.id !== party.id);
+  }
 }
 
 function onReceiveInput(input: InputRequest, socket) {
@@ -154,7 +154,10 @@ function updateClients(party: Party) {
   // only send non-cube state
 
   io.in(party.id).emit("update", {
-    players: party.state.filter(e => e.type === "PLAYER"),
+    updates: party.state.filter(
+      e =>
+        e.type === "PLAYER" || e.type === "TIMER" || e.type === "SCENE_MANAGER"
+    ),
     acks
   });
 }
@@ -162,16 +165,14 @@ function updateClients(party: Party) {
 (() => {
   setInterval(() => {
     // tick for each party
-    // parties = parties.map
     parties = parties.map(party => tick(party));
 
+    // send updates for each party
     parties
       .filter(party => party.partySize > 0)
       .forEach(party => {
         updateClients(party);
       });
-
-    // send updates for each party
   }, FRAME * FRAME_BUFFER);
 })();
 

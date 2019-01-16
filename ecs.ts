@@ -37,7 +37,7 @@ worker.onmessage = e => {
     case "STATE_UPDATE":
       const stateUpdate = receiveUpdate(
         state,
-        e.data.players,
+        e.data.updates,
         e.data.acks,
         clientId,
         savedFrames
