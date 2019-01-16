@@ -1,9 +1,9 @@
 import io from "socket.io-client";
-import { LATENCY } from "./common/clock";
+import { LATENCY } from "./common/constants";
 
 // send and receive data on a separate thread.
 const hostname =
-  process.env.NODE_ENV === "production" ? "157.230.56.115" : "localhost";
+  process.env.NODE_ENV === "production" ? process.env.WS_HOST : "localhost";
 const socket = io(`http://${hostname}:5555`);
 
 socket.on("welcome", data => {
