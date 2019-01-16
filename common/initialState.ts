@@ -2,9 +2,8 @@ import * as _ from "lodash";
 import { Entity, MeshTypes, State } from "./interfaces";
 import random from "./random";
 import { makeCoin } from "./coin";
-import { FRAME } from "./constants";
 
-const cubes = _.range(100)
+const cubes = _.range(80)
   .map(i => {
     return {
       x: random(-180, 180),
@@ -86,7 +85,7 @@ const timer: Entity = {
   isActive: true,
   timer: {
     lastTime: 0,
-    timeRemaining: 2 * 1000 // milliseconds
+    timeRemaining: 60 * 1000 // milliseconds
   }
 };
 const sceneManager: Entity = {
