@@ -3,11 +3,7 @@ import { Entity, MeshTypes } from "./interfaces";
 
 const scale = 10;
 
-export function initPlayer(
-  id: string,
-  meshType: MeshTypes,
-  color: number[]
-): Entity {
+export function initPlayer(id: string, meshType: MeshTypes): Entity {
   const startPosition = {
     x: _.sample(_.range(100)),
     y: 5,
@@ -17,7 +13,6 @@ export function initPlayer(
     id,
     type: "PLAYER",
     isActive: true,
-    color,
     mesh: { meshType },
     body: {
       useGravity: true,

@@ -38,12 +38,7 @@ io.on("connection", socket => {
 });
 
 function initPlayerForClient(clientId: string, party: Party) {
-  // get color for client and make color unavailable
-  const colors = [[1, 0, 0], [0, 1, 0], [0, 0, 1], [1, 1, 1]];
-  const color = colors[(party.partySize - 1) % 4];
-
-  // create a player with this id
-  party.state.push(initPlayer(clientId, MeshTypes.BUNNY, color));
+  party.state.push(initPlayer(clientId, MeshTypes.BUNNY));
 }
 
 function playAgain(socket) {

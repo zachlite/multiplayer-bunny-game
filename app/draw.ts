@@ -146,7 +146,7 @@ export const initDrawing = (r: regl.Regl) => {
     });
   }
 
-  function drawScores(players: Entity[]) {
+  function drawScores(players: Entity[], clientId) {
     _.orderBy(players, "score", "desc").forEach((player, i) => {
       const scale = 2;
 
@@ -157,16 +157,16 @@ export const initDrawing = (r: regl.Regl) => {
       };
 
       drawText(
-        `player-${player.id}: ${player.score}`,
+        `${player.id}: ${player.score}`,
         textTransform,
         1.2,
-        player.color
+        player.id === clientId ? [0, 1, 0] : [1, 1, 1]
       );
     });
   }
 
   return {
-    drawLobby: (state: State, client: string) => {
+    drawLobby: (state: State, clientId: string) => {
       const playersInLobby = state.filter(e => e.type === "PLAYER");
 
       drawText(
@@ -201,7 +201,7 @@ export const initDrawing = (r: regl.Regl) => {
             scale: { x: 2, y: 2, z: 2 }
           },
           1.2,
-          p.color
+          p.id === clientId ? [0, 1, 0] : [1, 1, 1]
         );
       });
 
@@ -259,7 +259,7 @@ export const initDrawing = (r: regl.Regl) => {
       });
 
       // draw all connected player scores
-      drawScores(state.filter(e => e.type === "PLAYER"));
+      drawScores(state.filter(e => e.type === "PLAYER"), clientId);
 
       // draw time remaining
       const timer = state.find(e => e.type === "TIMER");

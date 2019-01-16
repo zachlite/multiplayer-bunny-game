@@ -66,7 +66,6 @@ export interface Entity {
   collider?: Collider;
   score?: number;
   coin?: Coin;
-  color?: number[];
   timer?: Timer;
   sceneManager?: SceneManager;
 }
