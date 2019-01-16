@@ -4,12 +4,12 @@ import random from "./random";
 import { makeCoin } from "./coin";
 import { FRAME } from "./constants";
 
-const cubes = _.range(30)
+const cubes = _.range(100)
   .map(i => {
     return {
-      x: random(-100, 100),
-      y: random(5, 100),
-      z: random(-100, 100)
+      x: random(-180, 180),
+      y: random(5, 200),
+      z: random(-100, 180)
     };
   })
   .map((position, i) => {
@@ -86,7 +86,7 @@ const timer: Entity = {
   isActive: true,
   timer: {
     lastTime: 0,
-    timeRemaining: 60 * 1000 // milliseconds
+    timeRemaining: 2 * 1000 // milliseconds
   }
 };
 const sceneManager: Entity = {
@@ -99,7 +99,6 @@ const sceneManager: Entity = {
 export const initialState: State = [
   ...cubes,
   ground,
-  dummy,
   ...coins,
   timer,
   sceneManager

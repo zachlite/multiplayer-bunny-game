@@ -1,9 +1,16 @@
 import * as _ from "lodash";
 import regl from "regl";
 
-import { Input, State, InputRequest } from "./common/interfaces";
+import {
+  Input,
+  State,
+  InputRequest,
+  MessageType,
+  CollisionActiveMessage,
+  TriggerActiveMessage
+} from "./common/interfaces";
 import { step } from "./common/state";
-import { FRAME } from "./common/clock";
+import { FRAME } from "./common/constants";
 import { initDrawing } from "./app/draw";
 import { receiveUpdate } from "./app/replayFrames";
 import { initialState } from "./common/initialState";
@@ -64,7 +71,8 @@ window.onload = () => {
     left: false,
     right: false,
     forward: false,
-    back: false
+    back: false,
+    newGame: false
   };
 
   const keyCodeMappings = {
@@ -72,7 +80,8 @@ window.onload = () => {
     left: "KeyA",
     right: "KeyD",
     forward: "KeyW",
-    back: "KeyS"
+    back: "KeyS",
+    newGame: "Enter"
   };
 
   const throttledInputs = ["flap"];
@@ -98,17 +107,35 @@ window.onload = () => {
 
   const canvas = document.getElementById("canvas");
 
-  let canRequestReset = true;
+  let canRequestNewGame = true;
 
   function gameLoop() {
     switch (getCurrentScene(state)) {
       case "GAME":
         {
-          canRequestReset = true;
+          if (input.flap) {
+            let jumpsound = document.getElementById("jumpsound");
+            jumpsound.currentTime = 0;
+            jumpsound.play();
+          }
+
+          canRequestNewGame = true;
           const currentInput = { ...input };
           const inputRequest = { clientId, frame, input: currentInput };
 
-          state = step(state, [inputRequest]);
+          const next = step(state, [inputRequest]);
+          state = next.state;
+
+          // check if there is a collision in messages for coin
+          if (
+            next.messages.find(
+              (m: TriggerActiveMessage) =>
+                m.subject === MessageType.TRIGGER_ACTIVE &&
+                m.entityId === clientId
+            )
+          ) {
+            document.getElementById("coinsound").play();
+          }
 
           savedFrames.push({
             inputRequest,
@@ -130,11 +157,8 @@ window.onload = () => {
 
       case "GAME_OVER":
         {
-          if (input.flap && canRequestReset) {
-            // tell the server
-            // on the server, remove this player from the current party and create a new party
-            console.log("requesting new game");
-            canRequestReset = false;
+          if (input.newGame && canRequestNewGame) {
+            canRequestNewGame = false;
             worker.postMessage({ type: "PLAY_AGAIN" });
           }
         }

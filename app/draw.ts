@@ -8,6 +8,7 @@ import {
   MeshTypes
 } from "../common/interfaces";
 import { degreeToRadian } from "../common/math";
+import { PLAYERS_PER_PARTY } from "../common/constants";
 
 import { Mesh, MeshData } from "./mesh";
 import { getProjectionMatrix } from "./projectionMatrix";
@@ -181,7 +182,7 @@ export const initDrawing = (r: regl.Regl) => {
       );
 
       drawText(
-        `Waiting for ${4 - playersInLobby.length} more players`,
+        `Waiting for ${PLAYERS_PER_PARTY - playersInLobby.length} more players`,
         {
           position: { x: -15, y: 15, z: 0 },
           rotation: { x: 180, y: 0, z: 0 },
@@ -295,7 +296,7 @@ export const initDrawing = (r: regl.Regl) => {
       );
 
       drawText(
-        "press space to play again",
+        "press Enter to play again",
         {
           position: { x: -15, y: -10, z: 0 },
           rotation: { x: 180, y: 0, z: 0 },

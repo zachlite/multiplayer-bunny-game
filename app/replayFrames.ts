@@ -39,7 +39,7 @@ export function receiveUpdate(
 
       // replay all frames since the ack.
       framesSinceAck.forEach(sf => {
-        nextState = step(nextState, [sf.inputRequest]);
+        nextState = step(nextState, [sf.inputRequest]).state;
       });
 
       // throw away ack frame.

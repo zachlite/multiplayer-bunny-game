@@ -77,7 +77,7 @@ function tick(party: Party): Party {
     case "GAME": {
       const inputRequestsChunks = _.chunk(party.clientBuffer, party.partySize);
       inputRequestsChunks.forEach(inputRequests => {
-        party.state = step(party.state, inputRequests);
+        party.state = step(party.state, inputRequests).state;
       });
       return party;
     }

@@ -320,6 +320,31 @@ function deactivateCoin(
   return [updatedEntity, []];
 }
 
+function rotateCoin(entity: Entity, messages: Message[]): [Entity, Message[]] {
+  const newRotation = {
+    ...entity.body.transform.rotation,
+    y: entity.body.transform.rotation.y + 0.5
+  };
+
+  const newTransform = {
+    ...entity.body.transform,
+    rotation: newRotation
+  };
+
+  const newBody = {
+    ...entity.body,
+    transform: newTransform
+  };
+
+  return [
+    {
+      ...entity,
+      body: newBody
+    },
+    []
+  ];
+}
+
 function reactivateCoin(
   entity: Entity,
   messages: Message[]
@@ -405,9 +430,10 @@ function system(
   return [newState, newMessages];
 }
 
-export function step(state: State, inputRequests: InputRequest[]): State {
-  // lift collision
-
+export function step(
+  state: State,
+  inputRequests: InputRequest[]
+): { state: State; messages: Message[] } {
   const collisions = collisionSystem(
     state.filter(entity => entity.collider !== undefined && entity.isActive)
   );
@@ -421,7 +447,7 @@ export function step(state: State, inputRequests: InputRequest[]): State {
   });
 
   const messages = [...collisions, ...inputMessages];
-  return getNextState(state, messages);
+  return { ...getNextState(state, messages) };
 }
 
 function getNextState(state: State, messages: Message[]) {
@@ -437,6 +463,7 @@ function getNextState(state: State, messages: Message[]) {
     ],
     [(e: Entity) => e.type === "PLAYER", playerMovement],
     [(e: Entity) => e.score !== undefined, scoreUpdater],
+    [(e: Entity) => e.type === "COIN", rotateCoin],
     [(e: Entity) => e.type === "COIN", deactivateCoin],
     [(e: Entity) => e.type === "COIN", reactivateCoin],
     [
@@ -472,5 +499,5 @@ function getNextState(state: State, messages: Message[]) {
     }
   );
 
-  return nextState.state;
+  return nextState;
 }

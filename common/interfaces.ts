@@ -4,6 +4,7 @@ export interface Input {
   left: boolean;
   back: boolean;
   right: boolean;
+  newGame: boolean;
 }
 
 export interface InputRequest {
