@@ -2,7 +2,7 @@ import * as _ from "lodash";
 import { Entity, MeshTypes, State } from "./interfaces";
 import random from "./random";
 import { makeCoin } from "./coin";
-import { FRAME } from "./clock";
+import { FRAME } from "./constants";
 
 const cubes = _.range(30)
   .map(i => {

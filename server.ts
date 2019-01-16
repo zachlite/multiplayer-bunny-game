@@ -3,90 +3,21 @@ import * as _ from "lodash";
 import * as express from "express";
 import * as path from "path";
 
-import { FRAME, LATENCY } from "./common/clock";
 import {
-  InputRequest,
-  State,
-  MeshTypes,
-  SceneManager
-} from "./common/interfaces";
+  FRAME,
+  LATENCY,
+  PLAYERS_PER_PARTY,
+  FRAME_BUFFER
+} from "./common/constants";
+import { InputRequest, MeshTypes, SceneManager } from "./common/interfaces";
 import { step } from "./common/state";
 import { initPlayer } from "./common/player";
-import { initialState } from "./common/initialState";
 import { getCurrentScene } from "./common/scene";
 import { clientName } from "./common/clientName";
-const FRAME_BUFFER = 4; // wait 4 frames before processing input
+import { Party, PartyManager } from "./server/party";
 
 const io = socketio(5555);
-
-const PLAYERS_PER_PARTY = 4;
-
-interface Party {
-  id: string;
-  partySize: number;
-  state: State;
-  clientBuffer: InputRequest[];
-  clientSocketIds: {
-    [id: string]: string;
-  };
-}
-
-let parties: Party[] = [];
-
-function createParty(): Party {
-  return {
-    id: _.uniqueId("party_"),
-    state: [...initialState],
-    partySize: 0,
-    clientBuffer: [],
-    clientSocketIds: {}
-  };
-}
-
-function addClientToParty(party: Party, socket, clientId: string): Party {
-  return {
-    ...party,
-    partySize: party.partySize + 1,
-    clientSocketIds: {
-      ...party.clientSocketIds,
-      [socket.id]: clientId
-    }
-  };
-}
-
-function removeClientFromParty(party: Party, socket) {
-  party.state = party.state.filter(
-    e => e.id !== party.clientSocketIds[socket.id]
-  );
-
-  socket.leave(party.id);
-
-  delete party.clientSocketIds[socket.id];
-  party.partySize -= 1;
-
-  if (party.partySize === 0) {
-    parties = parties.filter(p => p.id !== party.id);
-  }
-}
-
-function joinAvailableParty(socket, clientId) {
-  const availableParty = parties.find(
-    party =>
-      party.partySize < PLAYERS_PER_PARTY &&
-      party.state.find(e => e.type === "SCENE_MANAGER").sceneManager
-        .currentScene === "LOBBY"
-  );
-
-  const party = availableParty ? availableParty : createParty();
-  const partyWithClient = addClientToParty(party, socket, clientId);
-
-  parties = availableParty
-    ? parties.map(p => (p.id === party.id ? partyWithClient : p))
-    : [...parties, partyWithClient];
-
-  socket.join(partyWithClient.id);
-  return partyWithClient;
-}
+const pm = PartyManager();
 
 io.on("connection", socket => {
   // get the first available party
@@ -94,7 +25,7 @@ io.on("connection", socket => {
   const clientId = clientName();
   console.log("client connected", socket.id);
 
-  const party = joinAvailableParty(socket, clientId);
+  const party = pm.joinAvailableParty(socket, clientId);
 
   // send it to the client
   socket.emit("welcome", { clientId });
@@ -106,19 +37,6 @@ io.on("connection", socket => {
   socket.on("play_again", () => playAgain(socket));
 });
 
-/**
- * Server
- *
- * the server and client agree on a timestep
- * the server buffers client requests and processes them every 4 frames.
- * the server sends its state to all connected clients, including an ack for each client.
- */
-
-// every 4 ticks, step
-
-// don't try and keep people together
-// when a player wants to play again, get an available party or make a new one
-
 function initPlayerForClient(clientId: string, party: Party) {
   // get color for client and make color unavailable
   const colors = [[1, 0, 0], [0, 1, 0], [0, 0, 1], [1, 1, 1]];
@@ -129,40 +47,30 @@ function initPlayerForClient(clientId: string, party: Party) {
 }
 
 function playAgain(socket) {
-  const oldParty = getParty(socket);
+  const oldParty = pm.findParty(socket);
   const clientId = oldParty.clientSocketIds[socket.id];
-  const newParty = joinAvailableParty(socket, clientId);
+  const newParty = pm.joinAvailableParty(socket, clientId);
 
-  removeClientFromParty(oldParty, socket);
+  pm.removeClientFromParty(oldParty, socket);
   initPlayerForClient(clientId, newParty);
-}
-
-function getParty(socket) {
-  return parties.find(party => party.clientSocketIds[socket.id] !== undefined);
 }
 
 function onClientDisconnect(socket: socketio.Socket) {
   console.log("client disconnected", socket.id);
-
-  let party = getParty(socket);
-  removeClientFromParty(party, socket);
+  pm.removeClientFromParty(pm.findParty(socket), socket);
 }
 
 function onReceiveInput(input: InputRequest, socket) {
-  let party = getParty(socket);
+  let party = pm.findParty(socket);
 
   setTimeout(() => {
     party.clientBuffer.push(input);
   }, LATENCY);
 }
 
-// make one of these for each party
-
 function tick(party: Party): Party {
   switch (getCurrentScene(party.state)) {
     case "LOBBY": {
-      // if the lobby has met the requisite number of players, update scene manager
-
       party.state = party.state.map(e =>
         e.type === "SCENE_MANAGER" && party.partySize === PLAYERS_PER_PARTY
           ? { ...e, sceneManager: { currentScene: "GAME" } as SceneManager }
@@ -172,15 +80,10 @@ function tick(party: Party): Party {
     }
 
     case "GAME": {
-      // process each client's input from the buffer
-      const connectedClients = party.partySize;
-      const inputRequestsChunks = _.chunk(party.clientBuffer, connectedClients);
-
+      const inputRequestsChunks = _.chunk(party.clientBuffer, party.partySize);
       inputRequestsChunks.forEach(inputRequests => {
         party.state = step(party.state, inputRequests);
       });
-
-      // clear the buffer
       return party;
     }
 
@@ -189,7 +92,7 @@ function tick(party: Party): Party {
   }
 }
 
-function updateClients(party: Party) {
+function broadcastUpdates(party: Party) {
   // need ack frames for each client
   const acks: { [clientId: string]: number } = party.clientBuffer.reduce(
     (prev, curr) => {
@@ -215,15 +118,9 @@ function updateClients(party: Party) {
 (() => {
   setInterval(() => {
     // tick for each party
-    parties = parties.map(party => tick(party));
-
+    pm.updateParties(tick);
     // send updates for each party
-
-    parties
-      .filter(party => party.partySize > 0)
-      .forEach(party => {
-        updateClients(party);
-      });
+    pm.broadcastUpdates(broadcastUpdates);
   }, FRAME * FRAME_BUFFER);
 })();
 

@@ -15,7 +15,7 @@ import {
   MeshTypes,
   SceneTransitionMessage
 } from "./interfaces";
-import { FRAME } from "./clock";
+import { FRAME } from "./constants";
 import { degreeToRadian } from "./math";
 import { getMessages } from "./message";
 import { collisionSystem } from "./collision";

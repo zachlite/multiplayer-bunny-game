@@ -42,7 +42,6 @@ worker.onmessage = e => {
         clientId,
         savedFrames
       );
-
       state = stateUpdate[0];
       savedFrames = stateUpdate[1];
       break;

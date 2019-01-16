@@ -37,8 +37,6 @@ export function receiveUpdate(
       const ackFrame: number = acks[clientId];
       const framesSinceAck = savedFrames.filter(sf => sf.frame > ackFrame);
 
-      console.log(framesSinceAck, acks);
-
       // replay all frames since the ack.
       framesSinceAck.forEach(sf => {
         nextState = step(nextState, [sf.inputRequest]);
